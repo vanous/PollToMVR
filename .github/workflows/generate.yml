@@ -1,0 +1,65 @@
+name: Build and Release Executables
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*' 
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+permissions:
+  contents: write  # Needed to upload release assets
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      shell: bash
+      run: |
+        if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "macOS" ]]; then
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        elif [[ "$RUNNER_OS" == "Windows" ]]; then
+          pwsh -Command "irm https://astral.sh/uv/install.ps1 | iex"
+        fi
+
+    - name: Verify uv install
+      run: uv --version
+
+    - name: Install dependencies with uv
+      run: |
+        uv sync
+
+    - name: Build executable with PyInstaller and packaging.spec
+      run: |
+        uv run pyinstaller packaging.spec
+
+    - name: Upload artifact (for debugging or download)
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ runner.os }}-binary
+        path: dist/*
+
+    - name: Upload to GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

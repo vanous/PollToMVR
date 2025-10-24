@@ -1,0 +1,15 @@
+headerPath = "agpl3-header.txt"
+
+excludes = [
+    ".github/",
+    "*.toml",
+]
+
+[git]
+attrs = 'auto'
+ignore = 'auto'
+
+[properties]
+inceptionYear = 2025
+projectName = "PollToMVR"
+

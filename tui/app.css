@@ -1,0 +1,72 @@
+/*
+ * Copyright (C) 2025 vanous
+ *
+ * This file is part of PollToMVR.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+ListDisplay {
+    height: 50%;
+    overflow-y: scroll;
+    width: 100%;
+}
+
+DictListDisplay {
+    height: 50%;
+    overflow-y: scroll;
+    width: 100%;
+}
+#json_output {
+    border: round white;
+    width: 100%;
+    height: auto;
+}
+
+
+Button {
+    width: 1fr;
+    margin-left: 1;
+    margin-right: 1;
+    background: blue;
+    border: blue
+}
+
+#frame {
+    border: round white;
+    margin-top: 1;
+}
+
+#all_around {
+    border: round white;
+}
+#checkbox_container {
+    margin-top: 1;
+    height: auto;
+}
+
+
+#mvr_data {
+        border: round white;
+    }
+
+Grid#action_buttons { 
+grid-size: 4 4; 
+height: auto;
+grid-gutter: 0;
+}
+Screen.-narrow Grid#action_buttons { grid-size: 3;}
+Screen.-normal Grid#action_buttons { grid-size: 3; }
+Screen.-wide Grid#action_buttons { grid-size: 3; }
+Screen.-very-wide Grid#action_buttons { grid-size: 3; }
