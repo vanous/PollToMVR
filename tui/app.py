@@ -27,46 +27,29 @@ from textual import on, work
 from textual.containers import Horizontal, Vertical, VerticalScroll, Grid
 from textual.widgets import Header, Footer, Input, Button, Static
 from textual.worker import Worker, WorkerState
-from tui.screens import (
-    ArtNetScreen,
-    QuitScreen,
-    ConfigScreen,
-)
+from tui.screens import ArtNetScreen, QuitScreen, ConfigScreen, ImportDiscovery
 from textual.message import Message
 from textual.reactive import reactive
 from tui.messages import MvrParsed, Errors
+import uuid as py_uuid
+from tui.create_mvr import create_mvr
 
 
-class ListDisplay(Vertical):
-    def update_items(self, items: list):
+class MVRDisplay(VerticalScroll):
+    def update_items(self, items):
+        print("update items", items)
         self.remove_children()
-        for item in items:
-            tags = ""
-            if hasattr(item, "tags"):
-                tags = ", ".join(item.tags)
-            if self.app.details_toggle:
+        for layer, fixtures in items.items():
+            print("loop", layer)
+            self.mount(Static(f"[blue]{self.app.get_layer_name(layer)}[/blue]"))
+
+            for fixture in fixtures:
+                print("looooo", fixture)
                 self.mount(
                     Static(
-                        f"[green]{item.name}[/green] {item.uuid or ''} {f' {item.id or ""}' if hasattr(item, 'id') else ''}{f' [blue]Tags:[/blue] {tags}' if tags else ''}"
+                        f"[green]{fixture.short_name}[/green] {fixture.universe or ''} {fixture.address or ''} {fixture.ip_address} "
                     )
                 )
-            else:
-                self.mount(
-                    Static(
-                        f"[green]{item.name}[/green]{f' [blue]Tags:[/blue] {tags}' if tags else ''}"
-                    )
-                )
-
-
-class DictListDisplay(Vertical):
-    def update_items(self, items: list):
-        self.remove_children()
-        for item in items:  # layers
-            for fixture in item.fixtures:
-                if self.app.details_toggle:
-                    self.mount(Static(f"[green]{fixture.name}[/green] {fixture.uuid}"))
-                else:
-                    self.mount(Static(f"[green]{fixture.name}[/green]"))
 
 
 class ArtPollToMVR(App):
@@ -92,10 +75,11 @@ class ArtPollToMVR(App):
     ]
 
     CONFIG_FILE = "config.json"
-    timeout: str = "1"
+    artnet_timeout: str = "1"
     details_toggle: bool = False
 
-    mvr_fixtures = []
+    mvr_fixtures = {}
+    mvr_layers = [("Default", str(py_uuid.uuid4()))]
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
@@ -107,15 +91,14 @@ class ArtPollToMVR(App):
                     "Ready...",
                     id="json_output",
                 )
-                with Horizontal(id="mvr_data"):
+                with Vertical(id="mvr_data"):
                     yield Static("[b]MVR data:[/b]")
-                    self.mvr_tag_display = ListDisplay()
-                    yield self.mvr_tag_display
-                    self.mvr_fixtures_display = DictListDisplay()
-                    yield self.mvr_fixtures_display
+                    self.mvr_display = MVRDisplay()
+                    yield self.mvr_display
 
             with Grid(id="action_buttons"):
                 yield Button("Discover", id="network_discovery")
+                yield Button("Save MVR", id="save_mvr")
                 yield Button("Configure", id="configure_button")
                 yield Button("Quit", variant="error", id="quit")
 
@@ -125,7 +108,7 @@ class ArtPollToMVR(App):
             with open(self.CONFIG_FILE, "r") as f:
                 try:
                     data = json.load(f)
-                    self.timeout = data.get("timeout", "1")
+                    self.artnet_timeout = data.get("artnet_timeout", "1")
                     self.details_toggle = data.get("details_toggle", False)
                     self.notify("Config loaded...", timeout=1)
 
@@ -141,19 +124,49 @@ class ArtPollToMVR(App):
                 "Calling API via script, adding monitors..."
             )
 
+        if event.button.id == "save_mvr":
+            create_mvr(self.mvr_fixtures, self.mvr_layers)
+
         if event.button.id == "network_discovery":
-            self.push_screen(ArtNetScreen())
+
+            def layer_selector(discovered):
+                if discovered:
+                    self.push_screen(
+                        ImportDiscovery(data=discovered), import_discovered
+                    )
+
+            def import_discovered(data):
+                print("import_data", "start")
+                if data:
+                    print(data)
+                    layer_id = data.get("layer_id", None)
+                    layer_name = data.get("layer_name", None)
+                    devices = data.get("devices", [])
+                    if not devices:
+                        return
+                    if layer_id and layer_id == "new_layer" and layer_name:
+                        layer_uuid = str(py_uuid.uuid4())
+                        self.mvr_layers.append((layer_name, layer_uuid))
+                    else:
+                        layer_uuid = layer_id
+                    if layer_uuid not in self.mvr_fixtures:
+                        self.mvr_fixtures[layer_uuid] = []
+                    self.mvr_fixtures[layer_uuid] += devices
+
+                    self.mvr_display.update_items(self.mvr_fixtures)
+
+            self.push_screen(ArtNetScreen(), layer_selector)
 
         if event.button.id == "configure_button":
             current_config = {
-                "timeout": self.timeout,
+                "artnet_timeout": self.artnet_timeout,
                 "details_toggle": self.details_toggle,
             }
 
             def save_config(data: dict) -> None:
                 """Called with the result of the configuration dialog."""
                 if data:
-                    self.timeout = data.get("timeout", "1")
+                    self.artnet_timeout = data.get("artnet_timeout", "1")
                     self.details_toggle = data.get("details_toggle", False)
                     self.action_save_config()
                     self.notify("Configuration saved.", timeout=1)
@@ -172,7 +185,7 @@ class ArtPollToMVR(App):
     def action_save_config(self) -> None:
         """Save the configuration to the JSON file."""
         data = {
-            "timeout": self.timeout,
+            "artnet_timeout": self.artnet_timeout,
             "details_toggle": self.details_toggle,
         }
         with open(self.CONFIG_FILE, "w") as f:
@@ -182,6 +195,11 @@ class ArtPollToMVR(App):
         """Save the configuration to the JSON file when the app closes."""
         self.action_save_config()
         self.exit()
+
+    def get_layer_name(self, uuid):
+        for layer_name, layer_id in self.mvr_layers:
+            if layer_id == uuid:
+                return layer_name
 
 
 if __name__ == "__main__":

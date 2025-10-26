@@ -88,7 +88,7 @@ class ConfigScreen(ModalScreen[dict]):
                 yield Label("Discover Network Timeout:")
                 yield Input(
                     placeholder="Enter timeout",
-                    id="timeout",
+                    id="artnet_timeout",
                     type="number",
                     max_length=3,
                 )
@@ -106,7 +106,9 @@ class ConfigScreen(ModalScreen[dict]):
     def on_mount(self) -> None:
         """Load existing data into the input fields."""
         if self.data:
-            self.query_one("#timeout", Input).value = self.data.get("timeout", "1")
+            self.query_one("#artnet_timeout", Input).value = self.data.get(
+                "artnet_timeout", "1"
+            )
             self.query_one("#details_toggle").value = self.data.get(
                 "details_toggle", False
             )
@@ -114,13 +116,7 @@ class ConfigScreen(ModalScreen[dict]):
     def action_save_config(self) -> None:
         """Save the configuration to the JSON file."""
         data = {
-            "url": self.url,
-            "username": self.username,
-            "password": self.password,
-            "timeout": self.timeout,
-            "layers": self.layers_toggle,
-            "classes": self.classes_toggle,
-            "positions": self.positions_toggle,
+            "artnet_timeout": self.artnet_timeout,
             "details_toggle": self.details_toggle,
         }
         with open(self.CONFIG_FILE, "w") as f:
@@ -130,7 +126,7 @@ class ConfigScreen(ModalScreen[dict]):
         if event.button.id == "save":
             self.dismiss(
                 {
-                    "timeout": self.query_one("#timeout").value,
+                    "artnet_timeout": self.query_one("#artnet_timeout").value,
                     "details_toggle": self.query_one("#details_toggle").value,
                 }
             )
@@ -159,19 +155,14 @@ class ArtNetScreen(ModalScreen):
         ("up", "focus_previous", "Focus Previous"),
         ("down", "focus_next", "Focus Next"),
     ]
+    discovered_devices = []
 
     def compose(self) -> ComposeResult:
         with Vertical(id="all_around"):
             yield Static("Art-Net Discovery", id="question")
             with Horizontal(id="row2"):
-                yield Button("Discover", id="do_start", classes="big_button")
-                yield Button(
-                    "Import Discovered",
-                    id="import_to_kuma",
-                    disabled=True,
-                    classes="big_button",
-                )
-                yield Button("Close", id="cancel", classes="big_button")
+                yield Button("Discover", id="do_start")
+                yield Button("Close", id="close_discovery")
             yield Select([], id="networks_select")
             yield Static("", id="network")
             yield Static("", id="results")
@@ -193,11 +184,8 @@ class ArtNetScreen(ModalScreen):
             btn = self.query_one("#do_start")
             btn.disabled = True
             btn.label = "...discovering..."
-        if event.button.id == "import_to_kuma":
-            self.dismiss()
-            self.app.run_import_mvr("./discovered_devices.mvr")
-        if event.button.id == "cancel":
-            self.dismiss()
+        if event.button.id == "close_discovery":
+            self.dismiss(self.discovered_devices)
 
     @on(Select.Changed)
     def select_changed(self, event: Select.Changed) -> None:
@@ -210,10 +198,12 @@ class ArtNetScreen(ModalScreen):
     async def run_discovery(self) -> str:
         try:
             results_widget = self.query_one("#results", Static)
-            results_widget.update(f"Searching... timeout is {self.app.timeout} sec.")
+            results_widget.update(
+                f"Searching... timeout is {self.app.artnet_timeout} sec."
+            )
             discovery = ArtNetDiscovery(bind_ip=self.network)
             discovery.start()
-            timeout = float(self.app.timeout)
+            timeout = float(self.app.artnet_timeout)
             result = discovery.discover_devices(timeout=timeout)
             discovery.stop()  # not really needed, as the thread will close...
             self.post_message(DevicesDiscovered(devices=result))
@@ -253,19 +243,118 @@ class ArtNetScreen(ModalScreen):
             )
 
         if devices:
-            create_mvr(devices)
-            result = f"[green]MVR with {len(devices)} result(s) saved as `discovered_devices.mvr`[/green]\n\n{result}"
-
-            btn = self.query_one("#import_to_kuma")
-            btn.disabled = False
+            result = f"[green]Found {len(devices)}:[/green]\n\n{result}"
 
         else:
             result = f"[red]No devices found {message.error}[/red]"
 
+        self.discovered_devices = devices
         results_widget.update(result)
         btn = self.query_one("#do_start")
         btn.disabled = False
         btn.label = "Discover"
+        if len(devices):
+            btn = self.query_one("#close_discovery")
+            btn.label = f"Add {len(devices)} device{'s' if len(devices) > 1 else ''} to MVR Layer"
+
+    def action_focus_next(self) -> None:
+        self.focus_next()
+
+    def action_focus_previous(self) -> None:
+        self.focus_previous()
+
+    async def on_key(self, event: events.Key) -> None:
+        if event.key == "escape":
+            self.dismiss(self.discovered_devices)  # Close the modal
+
+
+class ImportDiscovery(ModalScreen):
+    BINDINGS = [
+        ("left", "focus_previous", "Focus Previous"),
+        ("right", "focus_next", "Focus Next"),
+        ("up", "focus_previous", "Focus Previous"),
+        ("down", "focus_next", "Focus Next"),
+    ]
+    selected_layer_id = None
+    selected_layer_name = None
+
+    def __init__(self, data: list | None = None) -> None:
+        self.data = data or []
+        super().__init__()
+
+    def compose(self) -> ComposeResult:
+        yield Grid(
+            Static("Add Discovered Devices", id="question"),
+            Vertical(
+                Label("Add Into MVR Layer:", id="existing_layer_label"),
+                Select(
+                    self.app.mvr_layers + [("Create New layer", "new_layer")],
+                    id="layers_select",
+                ),
+                id="existing_layer",
+            ),
+            Vertical(
+                Label("New Layer name:"),
+                Input(
+                    value="Layer",
+                    type="text",
+                    valid_empty=False,
+                    id="layer_name",
+                ),
+                id="new_layer_widget",
+            ),
+            Horizontal(Button("Add", id="add"), id="buttons2"),
+            id="dialog",
+        )
+
+    def on_mount(self):
+        self.query_one("#new_layer_widget").disabled = True
+        # self.query_one("#add").disabled = True
+        select_widget = self.query_one("#layers_select")
+        select_widget.value = self.app.mvr_layers[0][1]
+        select_widget.refresh()  # Force redraw
+
+    @on(Select.Changed)
+    def select_changed(self, event: Select.Changed) -> None:
+        if str(event.value) and str(event.value) == "Select.BLANK":
+            self.query_one("#add").disabled = True
+            self.query_one("#new_layer_widget").disabled = True
+            return
+        if str(event.value) and str(event.value) == "new_layer":
+            self.query_one("#new_layer_widget").disabled = False
+            self.selected_layer_id = event.value
+            self.query_one("#add").disabled = False
+            return
+        self.query_one("#add").disabled = False
+        self.selected_layer_id = event.value
+        self.query_one("#new_layer_widget").disabled = True
+
+    @on(Input.Changed)
+    def input_changed(self, event: Input.Changed):
+        select_widget = self.query_one("#layers_select")
+        self.selected_layer_name = event.value
+        if select_widget.value != "new_layer":
+            return
+        if event.value:
+            layer_names = [x[0] for x in self.app.mvr_layers]
+            if event.value in layer_names:
+                self.query_one("#add").disabled = True
+                self.notify(f"Layer name already exists", timeout=1)
+            else:
+                self.query_one("#add").disabled = False
+        else:
+            self.query_one("#add").disabled = True
+            self.notify(f"Must not be empty", timeout=1)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "add":
+            self.dismiss(
+                {
+                    "layer_id": self.selected_layer_id,
+                    "layer_name": self.selected_layer_name,
+                    "devices": self.data,
+                }
+            )
 
     def action_focus_next(self) -> None:
         self.focus_next()

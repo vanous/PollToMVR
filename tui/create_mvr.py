@@ -19,7 +19,13 @@ import pymvr
 from pathlib import Path
 
 
-def create_mvr(devices):
+def get_layer_name(uuid, mvr_layers):
+    for layer_name, layer_id in mvr_layers:
+        if layer_id == uuid:
+            return layer_name
+
+
+def create_mvr(devices, mvr_layers):
     mvr_writer = pymvr.GeneralSceneDescriptionWriter()
     scene_obj = pymvr.Scene()
     aux_data = pymvr.AUXData()
@@ -27,34 +33,37 @@ def create_mvr(devices):
     scene_obj.layers = layers
     scene_obj.aux_data = aux_data
 
-    layer = pymvr.Layer(name="Network discovery")
-    layers.append(layer)
+    for layer_uuid, fixtures in devices.items():
+        layer_name = get_layer_name(layer_uuid, mvr_layers)
 
-    child_list = pymvr.ChildList()
-    layer.child_list = child_list
+        layer = pymvr.Layer(name=layer_name, uuid=layer_uuid)
+        layers.append(layer)
 
-    for net_fixture in devices:
-        if net_fixture.ip_address is None:
-            continue
-        fixture = pymvr.Fixture(name=net_fixture.short_name)
-        fixture.addresses.network.append(pymvr.Network(ipv4=net_fixture.ip_address))
-        if net_fixture.address is not None:
-            address = 1
-            universe = 1
-            try:
-                address = int(net_fixture.address or 1)
-                universe = int(net_fixture.universe or 1)
-            except:
-                ...
-            fixture.addresses.address.append(
-                pymvr.Address(
-                    dmx_break=0,
-                    universe=universe,
-                    address=address,
+        child_list = pymvr.ChildList()
+        layer.child_list = child_list
+
+        for net_fixture in fixtures:
+            if net_fixture.ip_address is None:
+                continue
+            fixture = pymvr.Fixture(name=net_fixture.short_name)
+            fixture.addresses.network.append(pymvr.Network(ipv4=net_fixture.ip_address))
+            if net_fixture.address is not None:
+                address = 1
+                universe = 1
+                try:
+                    address = int(net_fixture.address or 1)
+                    universe = int(net_fixture.universe or 1)
+                except:
+                    ...
+                fixture.addresses.address.append(
+                    pymvr.Address(
+                        dmx_break=0,
+                        universe=universe,
+                        address=address,
+                    )
                 )
-            )
 
-        child_list.fixtures.append(fixture)
+            child_list.fixtures.append(fixture)
 
     scene_obj.to_xml(parent=mvr_writer.xml_root)
 

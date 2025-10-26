@@ -17,17 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-ListDisplay {
-    height: 50%;
+MVRDisplay {
+    height: 1fr;
     overflow-y: scroll;
-    width: 100%;
+    width: 1fr;
 }
 
-DictListDisplay {
-    height: 50%;
-    overflow-y: scroll;
-    width: 100%;
-}
 #json_output {
     border: round white;
     width: 100%;
@@ -51,6 +46,10 @@ Button {
 #all_around {
     border: round white;
 }
+
+#json_output_container {
+    height: 1fr;
+}
 #checkbox_container {
     margin-top: 1;
     height: auto;
@@ -59,6 +58,8 @@ Button {
 
 #mvr_data {
         border: round white;
+        width: 1fr;
+        height:90%;
     }
 
 Grid#action_buttons { 
@@ -66,7 +67,21 @@ grid-size: 4 4;
 height: auto;
 grid-gutter: 0;
 }
-Screen.-narrow Grid#action_buttons { grid-size: 3;}
-Screen.-normal Grid#action_buttons { grid-size: 3; }
-Screen.-wide Grid#action_buttons { grid-size: 3; }
-Screen.-very-wide Grid#action_buttons { grid-size: 3; }
+Screen.-narrow Grid#action_buttons { grid-size: 2;}
+Screen.-normal Grid#action_buttons { grid-size: 2; }
+Screen.-wide Grid#action_buttons { grid-size: 4; }
+Screen.-very-wide Grid#action_buttons { grid-size: 4; }
+
+
+ImportDiscovery #question {
+    content-align: center middle;
+    padding-bottom: 1;
+}
+
+ImportDiscovery Grid {
+    border: round white;
+}
+
+ImportDiscovery Label{
+    padding-left:1;
+}

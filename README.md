@@ -1,7 +1,7 @@
 # PollToMVR
 
 > [!Warning]
-> Under Heavy Development í ½íº§
+> Under Heavy Development ğŸš§
 
 <img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/PollToMVR_icon.png" width="128px">
 
