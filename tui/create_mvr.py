@@ -25,7 +25,7 @@ def get_layer_name(uuid, mvr_layers):
             return layer_name
 
 
-def create_mvr(devices, mvr_layers):
+def create_mvr(devices, mvr_layers, save_to):
     mvr_writer = pymvr.GeneralSceneDescriptionWriter()
     scene_obj = pymvr.Scene()
     aux_data = pymvr.AUXData()
@@ -67,5 +67,5 @@ def create_mvr(devices, mvr_layers):
 
     scene_obj.to_xml(parent=mvr_writer.xml_root)
 
-    output_path = Path("discovered_devices.mvr")
+    output_path = save_to.with_suffix(".mvr")
     mvr_writer.write_mvr(output_path)

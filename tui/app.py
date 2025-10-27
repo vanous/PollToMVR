@@ -33,6 +33,7 @@ from textual.reactive import reactive
 from tui.messages import MvrParsed, Errors
 import uuid as py_uuid
 from tui.create_mvr import create_mvr
+from textual_fspicker import FileSave, Filters
 
 
 class MVRDisplay(VerticalScroll):
@@ -124,9 +125,6 @@ class ArtPollToMVR(App):
                 "Calling API via script, adding monitors..."
             )
 
-        if event.button.id == "save_mvr":
-            create_mvr(self.mvr_fixtures, self.mvr_layers)
-
         if event.button.id == "network_discovery":
 
             def layer_selector(discovered):
@@ -200,6 +198,19 @@ class ArtPollToMVR(App):
         for layer_name, layer_id in self.mvr_layers:
             if layer_id == uuid:
                 return layer_name
+
+    @on(Button.Pressed)
+    @work
+    async def save_a_file(self, event: Button.Pressed) -> None:
+        if event.button.id == "save_mvr":
+            if save_to := await self.app.push_screen_wait(
+                FileSave(
+                    default_file="discovered.mvr",
+                    filters=Filters(("MVR", lambda p: p.suffix.lower() == ".mvr")),
+                )
+            ):
+                create_mvr(self.mvr_fixtures, self.mvr_layers, save_to)
+                self.notify("Saved", timeout=1)
 
 
 if __name__ == "__main__":
