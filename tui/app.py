@@ -77,7 +77,7 @@ class ArtPollToMVR(App):
 
     CONFIG_FILE = "config.json"
     artnet_timeout: str = "1"
-    details_toggle: bool = False
+    show_debug: bool = False
 
     mvr_fixtures = {}
     mvr_layers = [("Default", str(py_uuid.uuid4()))]
@@ -110,7 +110,7 @@ class ArtPollToMVR(App):
                 try:
                     data = json.load(f)
                     self.artnet_timeout = data.get("artnet_timeout", "1")
-                    self.details_toggle = data.get("details_toggle", False)
+                    self.show_debug = data.get("show_debug", False)
                     self.notify("Config loaded...", timeout=1)
 
                 except json.JSONDecodeError:
@@ -158,14 +158,14 @@ class ArtPollToMVR(App):
         if event.button.id == "configure_button":
             current_config = {
                 "artnet_timeout": self.artnet_timeout,
-                "details_toggle": self.details_toggle,
+                "show_debug": self.show_debug,
             }
 
             def save_config(data: dict) -> None:
                 """Called with the result of the configuration dialog."""
                 if data:
                     self.artnet_timeout = data.get("artnet_timeout", "1")
-                    self.details_toggle = data.get("details_toggle", False)
+                    self.show_debug = data.get("show_debug", False)
                     self.action_save_config()
                     self.notify("Configuration saved.", timeout=1)
 
@@ -184,7 +184,7 @@ class ArtPollToMVR(App):
         """Save the configuration to the JSON file."""
         data = {
             "artnet_timeout": self.artnet_timeout,
-            "details_toggle": self.details_toggle,
+            "show_debug": self.show_debug,
         }
         with open(self.CONFIG_FILE, "w") as f:
             json.dump(data, f, indent=4)

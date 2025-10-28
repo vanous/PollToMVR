@@ -73,15 +73,29 @@ Screen.-wide Grid#action_buttons { grid-size: 4; }
 Screen.-very-wide Grid#action_buttons { grid-size: 4; }
 
 
-ImportDiscovery #question {
+ImportDiscovery {
+    align: center middle;
+}
+
+ImportDiscovery #question{
     content-align: center middle;
     padding-bottom: 1;
 }
 
-ImportDiscovery Grid {
+ImportDiscovery #dialog{
     border: round white;
+    width: 100;
+    height: auto;
+    align: center middle;
 }
 
 ImportDiscovery Label{
     padding-left:1;
 }
+
+
+ImportDiscovery Input{
+    margin-bottom:1;
+    padding-left:1;
+}
+

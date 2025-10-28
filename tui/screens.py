@@ -94,9 +94,9 @@ class ConfigScreen(ModalScreen[dict]):
                 )
                 yield Static("seconds", classes="unit")
             with Horizontal():
-                yield Label("Show IDs in listing:")
+                yield Label("Show Debug Info:")
                 with Horizontal(id="details_checkbox_container"):
-                    yield Switch(id="details_toggle")
+                    yield Switch(id="show_debug")
             yield Horizontal(
                 Button("Save", variant="success", id="save"),
                 Button("Cancel", variant="error", id="cancel"),
@@ -109,15 +109,13 @@ class ConfigScreen(ModalScreen[dict]):
             self.query_one("#artnet_timeout", Input).value = self.data.get(
                 "artnet_timeout", "1"
             )
-            self.query_one("#details_toggle").value = self.data.get(
-                "details_toggle", False
-            )
+            self.query_one("#show_debug").value = self.data.get("show_debug", False)
 
     def action_save_config(self) -> None:
         """Save the configuration to the JSON file."""
         data = {
             "artnet_timeout": self.artnet_timeout,
-            "details_toggle": self.details_toggle,
+            "show_debug": self.show_debug,
         }
         with open(self.CONFIG_FILE, "w") as f:
             json.dump(data, f, indent=4)
@@ -127,7 +125,7 @@ class ConfigScreen(ModalScreen[dict]):
             self.dismiss(
                 {
                     "artnet_timeout": self.query_one("#artnet_timeout").value,
-                    "details_toggle": self.query_one("#details_toggle").value,
+                    "show_debug": self.query_one("#show_debug").value,
                 }
             )
         else:
@@ -283,7 +281,7 @@ class ImportDiscovery(ModalScreen):
         super().__init__()
 
     def compose(self) -> ComposeResult:
-        yield Grid(
+        yield Vertical(
             Static("Add Discovered Devices", id="question"),
             Vertical(
                 Label("Add Into MVR Layer:", id="existing_layer_label"),
