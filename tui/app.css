@@ -70,14 +70,14 @@ grid-gutter: 0;
 Screen.-narrow Grid#action_buttons { grid-size: 2;}
 Screen.-normal Grid#action_buttons { grid-size: 2; }
 Screen.-wide Grid#action_buttons { grid-size: 4; }
-Screen.-very-wide Grid#action_buttons { grid-size: 4; }
+Screen.-very-wide Grid#action_buttons { grid-size: 5; }
 
 
 ImportDiscovery {
     align: center middle;
 }
 
-ImportDiscovery #question{
+#question{
     content-align: center middle;
     padding-bottom: 1;
 }
@@ -99,3 +99,58 @@ ImportDiscovery Input{
     padding-left:1;
 }
 
+GDTFFile {   
+    background: $boost;
+    height: 3;
+    margin-left: 0;
+    margin-bottom:0;
+    border: white;
+}
+
+LocalFile {   
+    background: $boost;
+    height: 3;
+    margin-left: 0;
+    margin-bottom:0;
+    border: white;
+}
+GDTFScreen #row2{
+    height: auto;
+}
+
+LocalFile Button{
+    dock: right;
+    width: 10;
+    height: 1;
+    margin-left: 1;
+    margin-right: 1;
+    margin-top:0;
+    margin-bottom: 0;
+    padding: 0;
+    border: none;
+    background: blue;
+}
+GDTFFile Button{
+    dock: right;
+    width: 10;
+    height: 1;
+    margin-left: 1;
+    margin-right: 1;
+    margin-top:0;
+    margin-bottom: 0;
+    padding: 0;
+    border: none;
+    background: blue;
+}
+VerticalScroll {
+    height: 100%;
+}
+#search{
+    border: round white;
+    height:3;
+}
+
+GDTFScreen #listing_gdtf, #listing_local{
+        width: 1fr;
+        height: 100%;
+    }

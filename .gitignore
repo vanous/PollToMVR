@@ -6,8 +6,10 @@ dist/
 wheels/
 *.egg-info
 *mvr
-
+*gdtf
+gdtf_files
 # Virtual environments
 .venv
 podman
 config.json
+data.json

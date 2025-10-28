@@ -27,6 +27,7 @@ from tui.network import get_network_cards
 from tui.artnet import ArtNetDiscovery
 import re
 import sys
+import json
 
 
 class QuitScreen(ModalScreen[bool]):
@@ -77,13 +78,12 @@ class ConfigScreen(ModalScreen[dict]):
         ("down", "focus_next", "Focus Next"),
     ]
 
-    def __init__(self, data: dict | None = None) -> None:
-        self.data = data or {}
+    def __init__(self) -> None:
         super().__init__()
 
     def compose(self) -> ComposeResult:
         with Vertical(id="config_dialog"):
-            yield Static("Settings", id="config_question")
+            yield Static("[bold]Settings[/bold]", id="config_question")
             with Horizontal(classes="input_container"):
                 yield Label("Discover Network Timeout:")
                 yield Input(
@@ -97,6 +97,22 @@ class ConfigScreen(ModalScreen[dict]):
                 yield Label("Show Debug Info:")
                 with Horizontal(id="details_checkbox_container"):
                     yield Switch(id="show_debug")
+            yield Static("[bold]GDTF Share Credentials[/bold]", id="credentials")
+            with Horizontal(classes="input_container"):
+                yield Label("Username:")
+                yield Input(
+                    placeholder="username",
+                    id="gdtf_username",
+                    type="text",
+                )
+            with Horizontal(classes="input_container"):
+                yield Label("Password:")
+                yield Input(
+                    placeholder="password",
+                    id="gdtf_password",
+                    type="text",
+                    password=True,
+                )
             yield Horizontal(
                 Button("Save", variant="success", id="save"),
                 Button("Cancel", variant="error", id="cancel"),
@@ -105,31 +121,24 @@ class ConfigScreen(ModalScreen[dict]):
 
     def on_mount(self) -> None:
         """Load existing data into the input fields."""
-        if self.data:
-            self.query_one("#artnet_timeout", Input).value = self.data.get(
-                "artnet_timeout", "1"
-            )
-            self.query_one("#show_debug").value = self.data.get("show_debug", False)
+        self.query_one("#artnet_timeout").value = self.app.configuration.artnet_timeout
+        self.query_one("#show_debug").value = self.app.configuration.show_debug
+        self.query_one("#gdtf_username").value = self.app.configuration.gdtf_username
+        self.query_one("#gdtf_password").value = self.app.configuration.gdtf_password
 
-    def action_save_config(self) -> None:
-        """Save the configuration to the JSON file."""
-        data = {
-            "artnet_timeout": self.artnet_timeout,
-            "show_debug": self.show_debug,
-        }
-        with open(self.CONFIG_FILE, "w") as f:
-            json.dump(data, f, indent=4)
+    def update_config(self):
+        self.app.configuration.artnet_timeout = self.query_one("#artnet_timeout").value
+        self.app.configuration.show_debug = self.query_one("#show_debug").value
+        self.app.configuration.gdtf_username = self.query_one("#gdtf_username").value
+        self.app.configuration.gdtf_password = self.query_one("#gdtf_password").value
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "save":
-            self.dismiss(
-                {
-                    "artnet_timeout": self.query_one("#artnet_timeout").value,
-                    "show_debug": self.query_one("#show_debug").value,
-                }
-            )
+            self.update_config()
+            self.app.action_save_config()
+            self.dismiss()
         else:
-            self.dismiss({})
+            self.dismiss()
 
     def action_focus_next(self) -> None:
         self.focus_next()
@@ -197,11 +206,11 @@ class ArtNetScreen(ModalScreen):
         try:
             results_widget = self.query_one("#results", Static)
             results_widget.update(
-                f"Searching... timeout is {self.app.artnet_timeout} sec."
+                f"Searching... timeout is {self.app.configuration.artnet_timeout} sec."
             )
             discovery = ArtNetDiscovery(bind_ip=self.network)
             discovery.start()
-            timeout = float(self.app.artnet_timeout)
+            timeout = float(self.app.configuration.artnet_timeout)
             result = discovery.discover_devices(timeout=timeout)
             discovery.stop()  # not really needed, as the thread will close...
             self.post_message(DevicesDiscovered(devices=result))

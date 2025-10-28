@@ -34,6 +34,8 @@ from tui.messages import MvrParsed, Errors
 import uuid as py_uuid
 from tui.create_mvr import create_mvr
 from textual_fspicker import FileSave, Filters
+from tui.gdtf_share.gdtf import GDTFScreen
+from pathlib import Path
 
 
 class MVRDisplay(VerticalScroll):
@@ -76,8 +78,9 @@ class ArtPollToMVR(App):
     ]
 
     CONFIG_FILE = "config.json"
-    artnet_timeout: str = "1"
-    show_debug: bool = False
+    configuration = SimpleNamespace(
+        artnet_timeout="1", show_debug=False, gdtf_username="", gdtf_password=""
+    )
 
     mvr_fixtures = {}
     mvr_layers = [("Default", str(py_uuid.uuid4()))]
@@ -100,17 +103,18 @@ class ArtPollToMVR(App):
             with Grid(id="action_buttons"):
                 yield Button("Discover", id="network_discovery")
                 yield Button("Save MVR", id="save_mvr")
+                yield Button("GDTF Files", id="gdtf_files")
                 yield Button("Configure", id="configure_button")
                 yield Button("Quit", variant="error", id="quit")
 
     def on_mount(self) -> None:
         """Load the configuration from the JSON file when the app starts."""
+        path = Path("gdtf_files")
+        path.mkdir(parents=True, exist_ok=True)
         if os.path.exists(self.CONFIG_FILE):
             with open(self.CONFIG_FILE, "r") as f:
                 try:
-                    data = json.load(f)
-                    self.artnet_timeout = data.get("artnet_timeout", "1")
-                    self.show_debug = data.get("show_debug", False)
+                    vars(self.configuration).update(json.load(f))
                     self.notify("Config loaded...", timeout=1)
 
                 except json.JSONDecodeError:
@@ -119,6 +123,8 @@ class ArtPollToMVR(App):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Called when a button is pressed."""
+        if event.button.id == "gdtf_files":
+            self.push_screen(GDTFScreen())
 
         if event.button.id == "delete_tags":
             self.query_one("#json_output").update(
@@ -156,20 +162,7 @@ class ArtPollToMVR(App):
             self.push_screen(ArtNetScreen(), layer_selector)
 
         if event.button.id == "configure_button":
-            current_config = {
-                "artnet_timeout": self.artnet_timeout,
-                "show_debug": self.show_debug,
-            }
-
-            def save_config(data: dict) -> None:
-                """Called with the result of the configuration dialog."""
-                if data:
-                    self.artnet_timeout = data.get("artnet_timeout", "1")
-                    self.show_debug = data.get("show_debug", False)
-                    self.action_save_config()
-                    self.notify("Configuration saved.", timeout=1)
-
-            self.push_screen(ConfigScreen(data=current_config), save_config)
+            self.push_screen(ConfigScreen())
 
         if event.button.id == "quit":
 
@@ -182,12 +175,8 @@ class ArtPollToMVR(App):
 
     def action_save_config(self) -> None:
         """Save the configuration to the JSON file."""
-        data = {
-            "artnet_timeout": self.artnet_timeout,
-            "show_debug": self.show_debug,
-        }
         with open(self.CONFIG_FILE, "w") as f:
-            json.dump(data, f, indent=4)
+            json.dump(vars(self.app.configuration), f, indent=4)
 
     def action_quit(self) -> None:
         """Save the configuration to the JSON file when the app closes."""
