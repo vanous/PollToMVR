@@ -331,6 +331,12 @@ class ImportDiscovery(ModalScreen):
             self.query_one("#new_layer_widget").disabled = False
             self.selected_layer_id = event.value
             self.query_one("#add").disabled = False
+
+            new_layer_name = self.query_one("#layer_name").value
+            layer_names = [x[0] for x in self.app.mvr_layers]
+            if new_layer_name in layer_names:
+                self.query_one("#add").disabled = True
+
             return
         self.query_one("#add").disabled = False
         self.selected_layer_id = event.value
@@ -364,9 +370,23 @@ class ImportDiscovery(ModalScreen):
             )
 
     def action_focus_next(self) -> None:
+        select_widget = self.query_one("#layers_select")
+        new_layer_name = self.query_one("#layer_name").value
+        if select_widget.value == "new_layer":
+            layer_names = [x[0] for x in self.app.mvr_layers]
+            if new_layer_name in layer_names:
+                self.query_one("#add").disabled = True
+                self.notify(f"Layer name already exists", timeout=1)
         self.focus_next()
 
     def action_focus_previous(self) -> None:
+        select_widget = self.query_one("#layers_select")
+        new_layer_name = self.query_one("#layer_name").value
+        if select_widget.value == "new_layer":
+            layer_names = [x[0] for x in self.app.mvr_layers]
+            if new_layer_name in layer_names:
+                self.query_one("#add").disabled = True
+                self.notify(f"Layer name already exists", timeout=1)
         self.focus_previous()
 
     async def on_key(self, event: events.Key) -> None:
