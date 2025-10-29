@@ -85,7 +85,7 @@ class ConfigScreen(ModalScreen[dict]):
         with Vertical(id="config_dialog"):
             yield Static("[bold]Settings[/bold]", id="config_question")
             with Horizontal(classes="input_container"):
-                yield Label("Discover Network Timeout:")
+                yield Label("Network Discovery Timeout:")
                 yield Input(
                     placeholder="Enter timeout",
                     id="artnet_timeout",
@@ -194,8 +194,7 @@ class ArtNetScreen(ModalScreen):
         if event.button.id == "close_discovery":
             self.dismiss(self.discovered_devices)
 
-    @on(Select.Changed)
-    def select_changed(self, event: Select.Changed) -> None:
+    def on_select_changed(self, event: Select.Changed) -> None:
         if str(event.value) and str(event.value) != "Select.BLANK":
             self.network = str(event.value)
             self.query_one("#network").update(f"{self.network}")
@@ -321,8 +320,7 @@ class ImportDiscovery(ModalScreen):
         select_widget.value = self.app.mvr_layers[0][1]
         select_widget.refresh()  # Force redraw
 
-    @on(Select.Changed)
-    def select_changed(self, event: Select.Changed) -> None:
+    def on_select_changed(self, event: Select.Changed) -> None:
         if str(event.value) and str(event.value) == "Select.BLANK":
             self.query_one("#add").disabled = True
             self.query_one("#new_layer_widget").disabled = True
@@ -342,8 +340,7 @@ class ImportDiscovery(ModalScreen):
         self.selected_layer_id = event.value
         self.query_one("#new_layer_widget").disabled = True
 
-    @on(Input.Changed)
-    def input_changed(self, event: Input.Changed):
+    def on_input_changed(self, event: Input.Changed):
         select_widget = self.query_one("#layers_select")
         self.selected_layer_name = event.value
         if select_widget.value != "new_layer":

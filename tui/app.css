@@ -145,11 +145,37 @@ GDTFFile Button{
 VerticalScroll {
     height: 100%;
 }
-#search{
+#search_bar{
     border: round white;
     height:3;
 }
+#search{
+    margin-left: 0;
+    padding: 0;
+    width: 100%;
+    border: none;
+    dock: left;
+}
 
+#manufacturer_only_bar{
+    height: 1;
+    padding: 0;
+    border: none;
+    width: 35;
+    dock: right;
+}
+#manufacturer_only{
+    height: 1;
+    padding: 0;
+    border: none;
+    width: 10;
+    dock: right;
+}
+#manufacturer_only_label{
+    height: 1;
+    padding: 0;
+    border: none;
+}
 GDTFScreen #listing_gdtf, #listing_local{
         width: 1fr;
         height: 100%;

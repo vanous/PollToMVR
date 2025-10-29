@@ -37,11 +37,13 @@ import re
 import sys
 from pathlib import Path
 import json
+import asyncio
 
 
-class FileDownloaded(Message):
-    def __init__(self) -> None:
-        super().__init__()
+class FileDownloaded(Message): ...
+
+
+class ShareUpdated(Message): ...
 
 
 class LocalFile(HorizontalGroup):
@@ -92,7 +94,10 @@ class GDTFFile(HorizontalGroup):
         super().__init__()
 
     def compose(self):
-        yield Static(f"{self.name} ({self.brand})", id="name")
+        yield Static(
+            f"{self.name} ({self.brand}) {'🏭' if self.manufacturer_file else '🧑'}",
+            id="name",
+        )
         yield Button("Download", id="download")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -128,6 +133,7 @@ class GDTFScreen(ModalScreen):
 
     data_file = Path("data.json")
     gdtf_data = []
+    debounce_task = None
 
     def compose(self) -> ComposeResult:
         with Vertical(id="all_around"):
@@ -135,20 +141,29 @@ class GDTFScreen(ModalScreen):
             with Horizontal(id="row2"):
                 yield Button("Update GDTF Share data", id="do_update")
                 yield Button("Close", id="close")
-            yield Input(placeholder="GDTF Share Search", type="text", id="search")
+            with Horizontal(id="search_bar"):
+                yield Input(placeholder="GDTF Share Search", type="text", id="search")
+                with Horizontal(id="manufacturer_only_bar"):
+                    yield Static("Manufacturer Files Only:", id="manufacturer_label")
+                    yield Switch(id="manufacturer_only", value=True)
             with Horizontal():
                 with VerticalScroll(id="listing_share"):
                     yield Static("...")
                 with VerticalScroll(id="listing_local"):
                     yield Static("...")
 
-    @on(Input.Changed)
-    def input_changed(self, event: Input.Changed):
-        text = event.value
-        if len(text) > 2:
-            self.refresh_share_listing(text)
-        if len(text) == 0:
-            self.refresh_share_listing(text)
+    def on_switch_changed(self, event: Switch.Changed):
+        self.refresh_share_listing()
+
+    def on_input_changed(self, event: Input.Changed):
+        if self.debounce_task and not self.debounce_task.done():
+            self.debounce_task.cancel()
+
+        self.debounce_task = asyncio.create_task(self.debounced_update(event.value))
+
+    async def debounced_update(self, value: str):
+        await asyncio.sleep(0.25)
+        self.refresh_share_listing()
 
     def on_mount(self):
         self.gdtf_data = []
@@ -158,7 +173,10 @@ class GDTFScreen(ModalScreen):
         self.refresh_share_listing()
         self.refresh_local_listing()
 
-    def refresh_share_listing(self, search=None):
+    def refresh_share_listing(self):
+        manufacturer_only = self.query_one("#manufacturer_only").value
+        search = self.query_one("#search").value
+
         listing = self.query_one("#listing_share")
         listing.remove_children()
         if search:
@@ -166,11 +184,15 @@ class GDTFScreen(ModalScreen):
                 fix
                 for fix in self.gdtf_data
                 if search.lower() in fix["fixture"].lower()
+                and (fix["uploader"] == "Manuf.") == manufacturer_only
                 and fix["manufacturer"] != "User Test"
             ]
         else:
             filtered_data = [
-                fix for fix in self.gdtf_data if fix["manufacturer"] != "User Test"
+                fix
+                for fix in self.gdtf_data
+                if fix["manufacturer"] != "User Test"
+                and (fix["uploader"] == "Manuf.") == manufacturer_only
             ]
 
         listing.mount(Static("[bold]GDTF Share Files:[/bold]"))
@@ -190,15 +212,18 @@ class GDTFScreen(ModalScreen):
     def callback(self, function, result):
         function(result)
 
-    def reload_share_data(self, result):
+    def updated(self, result):
+        if result.status:
+            self.notify(f"Updated, status: {result.result.status_code}", timeout=1)
+            self.post_message(ShareUpdated())
+        else:
+            self.notify(f"Failed, status: {result.result.status_code}", timeout=1)
+
+    def reload_share_data(self):
         if self.data_file.exists():
             with open(self.data_file, "r") as f:
                 self.gdtf_data = json.load(f)
-        self.refresh_share_listing()
-        if result.status:
-            self.notify(f"Updated, status: {result.result.status_code}", timeout=1)
-        else:
-            self.notify(f"Failed, status: {result.result.status_code}", timeout=1)
+        self.query_one("#search").value = ""  # this will cause data refresh
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "do_update":
@@ -214,7 +239,7 @@ class GDTFScreen(ModalScreen):
                 self.app.configuration.gdtf_username,
                 self.app.configuration.gdtf_password,
                 self.callback,
-                self.reload_share_data,
+                self.updated,
                 self.data_file,
             )
 
@@ -237,3 +262,6 @@ class GDTFScreen(ModalScreen):
 
     def on_file_downloaded(self, message: FileDownloaded) -> None:
         self.refresh_local_listing()
+
+    def on_share_updated(self, message: ShareUpdated) -> None:
+        self.reload_share_data()

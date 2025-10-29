@@ -76,6 +76,7 @@ ConfigScreen #config_dialog {
 
 #details_checkbox_container Switch {
     height: 1;
+    width: 10;
     padding: 0;
     border: none;
 }
