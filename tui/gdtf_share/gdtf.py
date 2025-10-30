@@ -73,6 +73,7 @@ class GDTFFile(HorizontalGroup):
     fixture = None
     name = ""
     brand = ""
+    creator = ""
     manufacturer_file = False
 
     def callback(self, function, result):
@@ -91,6 +92,7 @@ class GDTFFile(HorizontalGroup):
             self.name = fixture.get("fixture")
             self.brand = fixture.get("manufacturer")
             self.manufacturer_file = fixture.get("uploader") == "Manuf."
+            self.creator = fixture.get("creator")
         super().__init__()
 
     def compose(self):
@@ -142,17 +144,32 @@ class GDTFScreen(ModalScreen):
                 yield Button("Update GDTF Share data", id="do_update")
                 yield Button("Close", id="close")
             with Horizontal(id="search_bar"):
-                yield Input(placeholder="GDTF Share Search", type="text", id="search")
-                with Horizontal(id="manufacturer_only_bar"):
-                    yield Static("Manufacturer Files Only:", id="manufacturer_label")
-                    yield Switch(id="manufacturer_only", value=True)
+                yield Input(
+                    placeholder="Filter GDTF Name", type="text", id="filter_filename"
+                )
+                yield Input(
+                    placeholder="Filter Manufacturer",
+                    type="text",
+                    id="filter_manufacturer",
+                )
+                yield Select(
+                    options=[
+                        ("🏭 Manufacturer Only", "Manuf."),
+                        ("🧑 User Only", "User"),
+                        ("🏭 🧑 Show All Files", "all"),
+                    ],
+                    prompt="",
+                    allow_blank=False,
+                    id="uploader",
+                    value="all",
+                )
             with Horizontal():
                 with VerticalScroll(id="listing_share"):
                     yield Static("...")
                 with VerticalScroll(id="listing_local"):
                     yield Static("...")
 
-    def on_switch_changed(self, event: Switch.Changed):
+    def on_select_changed(self, event: Select.Changed):
         self.refresh_share_listing()
 
     def on_input_changed(self, event: Input.Changed):
@@ -174,28 +191,34 @@ class GDTFScreen(ModalScreen):
         self.refresh_local_listing()
 
     def refresh_share_listing(self):
-        manufacturer_only = self.query_one("#manufacturer_only").value
-        search = self.query_one("#search").value
-
         listing = self.query_one("#listing_share")
         listing.remove_children()
-        if search:
-            filtered_data = [
-                fix
-                for fix in self.gdtf_data
-                if search.lower() in fix["fixture"].lower()
-                and (fix["uploader"] == "Manuf.") == manufacturer_only
-                and fix["manufacturer"] != "User Test"
-            ]
-        else:
-            filtered_data = [
-                fix
-                for fix in self.gdtf_data
-                if fix["manufacturer"] != "User Test"
-                and (fix["uploader"] == "Manuf.") == manufacturer_only
-            ]
 
-        listing.mount(Static("[bold]GDTF Share Files:[/bold]"))
+        filter_uploader = self.query_one("#uploader").value
+        filter_filename = self.query_one("#filter_filename").value
+        filter_manufacturer = self.query_one("#filter_manufacturer").value
+
+        filters = []
+
+        if filter_filename:
+            filters.append(
+                lambda fix: filter_filename.lower() in fix["fixture"].lower()
+            )
+        if filter_manufacturer:
+            filters.append(
+                lambda fix: filter_manufacturer.lower() in fix["manufacturer"].lower()
+            )
+
+        if filter_uploader != "all":
+            filters.append(lambda fix: fix["uploader"] == filter_uploader)
+
+        filtered_data = [fix for fix in self.gdtf_data if all(f(fix) for f in filters)]
+
+        listing.mount(
+            Static(
+                f"[bold]GDTF Share Files:[/bold] Showing 50 of {len(filtered_data)}:"
+            )
+        )
         for fixture in filtered_data[0:50]:
             listing.mount(GDTFFile(fixture))
 
@@ -223,7 +246,12 @@ class GDTFScreen(ModalScreen):
         if self.data_file.exists():
             with open(self.data_file, "r") as f:
                 self.gdtf_data = json.load(f)
-        self.query_one("#search").value = ""  # this will cause data refresh
+        if self.query_one("#filter_manufacturer").value == "":
+            self.refresh_share_listing()
+        else:
+            self.query_one("#filter_filename").value = self.query_one(
+                "#filter_manufacturer"
+            ).value = ""  # this will cause data refresh
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "do_update":

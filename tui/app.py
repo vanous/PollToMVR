@@ -25,7 +25,7 @@ from types import SimpleNamespace
 from textual.app import App, ComposeResult
 from textual import on, work
 from textual.containers import Horizontal, Vertical, VerticalScroll, Grid
-from textual.widgets import Header, Footer, Input, Button, Static
+from textual.widgets import Header, Footer, Input, Button, Static, Select
 from textual.worker import Worker, WorkerState
 from tui.screens import ArtNetScreen, QuitScreen, ConfigScreen, ImportDiscovery
 from textual.message import Message
@@ -40,19 +40,42 @@ from pathlib import Path
 
 class MVRDisplay(VerticalScroll):
     def update_items(self, items):
-        print("update items", items)
         self.remove_children()
         for layer, fixtures in items.items():
-            print("loop", layer)
-            self.mount(Static(f"[blue]{self.app.get_layer_name(layer)}[/blue]"))
+            self.mount(Static(f"Layer: [blue]{self.app.get_layer_name(layer)}[/blue]"))
 
             for fixture in fixtures:
-                print("looooo", fixture)
                 self.mount(
                     Static(
                         f"[green]{fixture.short_name}[/green] {fixture.universe or ''} {fixture.address or ''} {fixture.ip_address} "
                     )
                 )
+
+
+class GDTFMapping(VerticalScroll):
+    def update_items(self):
+        self.remove_children()
+
+        path = Path("gdtf_files")
+        gdtf_files_list = [(p.stem, p) for p in path.iterdir() if p.suffix == ".gdtf"]
+        fixtures = set(
+            [
+                fixture.short_name
+                for layer in self.app.mvr_fixtures.values()
+                for fixture in layer
+            ]
+        )
+
+        for fixture in fixtures:
+            self.mount(
+                Horizontal(
+                    Static(f"[green]{fixture}[/green]", id="gdtf_select"),
+                    Select(
+                        options=gdtf_files_list,
+                        id="select_gdtf",
+                    ),
+                )
+            )
 
 
 class ArtPollToMVR(App):
@@ -90,15 +113,15 @@ class ArtPollToMVR(App):
         yield Header()
         yield Footer()
         with Vertical(id="all_around"):
-            with Vertical(id="json_output_container"):
-                yield Static(
-                    "Ready...",
-                    id="json_output",
-                )
+            with Horizontal():
                 with Vertical(id="mvr_data"):
                     yield Static("[b]MVR data:[/b]")
                     self.mvr_display = MVRDisplay()
                     yield self.mvr_display
+                with Vertical(id="gdtf_mapping"):
+                    yield Static("[b]GDTF Mapping:[/b]")
+                    self.gdtf_mapping = GDTFMapping()
+                    yield self.gdtf_mapping
 
             with Grid(id="action_buttons"):
                 yield Button("Discover", id="network_discovery")
@@ -158,6 +181,7 @@ class ArtPollToMVR(App):
                     self.mvr_fixtures[layer_uuid] += devices
 
                     self.mvr_display.update_items(self.mvr_fixtures)
+                    self.gdtf_mapping.update_items()
 
             self.push_screen(ArtNetScreen(), layer_selector)
 

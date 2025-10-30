@@ -42,7 +42,7 @@ class QuitScreen(ModalScreen[bool]):
 
     def compose(self) -> ComposeResult:
         yield Grid(
-            Static("Are you sure you want to quit?", id="question"),
+            Static("[bold]Are you sure you want to quit?[/bold]", id="question"),
             Horizontal(
                 Button("Yes", variant="error", id="yes"),
                 Button("No", variant="primary", id="no"),
@@ -170,7 +170,7 @@ class ArtNetScreen(ModalScreen):
             with Horizontal(id="row2"):
                 yield Button("Discover", id="do_start")
                 yield Button("Close", id="close_discovery")
-            yield Select([], id="networks_select")
+            yield Select([("", "")], id="networks_select", allow_blank=False)
             yield Static("", id="network")
             yield Static("", id="results")
 
@@ -296,6 +296,7 @@ class ImportDiscovery(ModalScreen):
                 Select(
                     self.app.mvr_layers + [("Create New layer", "new_layer")],
                     id="layers_select",
+                    allow_blank=False,
                 ),
                 id="existing_layer",
             ),
@@ -314,11 +315,12 @@ class ImportDiscovery(ModalScreen):
         )
 
     def on_mount(self):
-        self.query_one("#new_layer_widget").disabled = True
+        pass
+        # self.query_one("#new_layer_widget").disabled = True
         # self.query_one("#add").disabled = True
-        select_widget = self.query_one("#layers_select")
-        select_widget.value = self.app.mvr_layers[0][1]
-        select_widget.refresh()  # Force redraw
+        # select_widget = self.query_one("#layers_select")
+        # select_widget.value = self.app.mvr_layers[0][1]
+        # select_widget.refresh()  # Force redraw
 
     def on_select_changed(self, event: Select.Changed) -> None:
         if str(event.value) and str(event.value) == "Select.BLANK":
