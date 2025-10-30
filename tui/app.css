@@ -18,179 +18,188 @@
  */
 
 MVRDisplay {
-    height: 1fr;
-    overflow-y: scroll;
-    width: 1fr;
+  height: 1fr;
+  overflow-y: scroll;
+  width: 1fr;
 }
 
 #json_output {
-    border: round white;
-    width: 100%;
-    height: auto;
+  border: round white;
+  width: 100%;
+  height: auto;
 }
 
-
 Button {
-    width: 1fr;
-    margin-left: 1;
-    margin-right: 1;
-    background: blue;
-    border: blue
+  width: 1fr;
+  margin-left: 1;
+  margin-right: 1;
+  background: blue;
+  border: blue;
 }
 
 #frame {
-    border: round white;
-    margin-top: 1;
+  border: round white;
+  margin-top: 1;
 }
 
 #all_around {
-    border: round white;
+  border: round white;
 }
 
 #json_output_container {
-    height: 1fr;
+  height: 1fr;
 }
 #checkbox_container {
-    margin-top: 1;
-    height: auto;
+  margin-top: 1;
+  height: auto;
 }
-
 
 #mvr_data {
-        border: round white;
-        width: 1fr;
-        height:100%;
-    }
-#gdtf_mapping {
-        border: round white;
-        width: 1fr;
-        height:100%;
-    }
-
-Grid#action_buttons { 
-grid-size: 4 4; 
-height: auto;
-grid-gutter: 0;
+  border: round white;
+  width: 1fr;
+  height: 100%;
 }
-Screen.-narrow Grid#action_buttons { grid-size: 2;}
-Screen.-normal Grid#action_buttons { grid-size: 2; }
-Screen.-wide Grid#action_buttons { grid-size: 4; }
-Screen.-very-wide Grid#action_buttons { grid-size: 5; }
+#gdtf_mapping {
+  border: round white;
+  width: 1fr;
+  height: 100%;
+}
 
+Grid#action_buttons {
+  grid-size: 4 4;
+  height: auto;
+  grid-gutter: 0;
+}
+Screen.-narrow Grid#action_buttons {
+  grid-size: 2;
+}
+Screen.-normal Grid#action_buttons {
+  grid-size: 2;
+}
+Screen.-wide Grid#action_buttons {
+  grid-size: 4;
+}
+Screen.-very-wide Grid#action_buttons {
+  grid-size: 5;
+}
 
 ImportDiscovery {
-    align: center middle;
+  align: center middle;
 }
 
-#question{
-    content-align: center middle;
-    padding-bottom: 1;
+#question {
+  content-align: center middle;
+  padding-bottom: 1;
 }
 
-ImportDiscovery #dialog{
-    border: round white;
-    width: 100;
-    height: auto;
-    align: center middle;
+ImportDiscovery #dialog {
+  border: round white;
+  width: 100;
+  height: auto;
+  align: center middle;
 }
 
-ImportDiscovery Label{
-    padding-left:1;
+ImportDiscovery Label {
+  padding-left: 1;
 }
 
-
-ImportDiscovery Input{
-    margin-bottom:1;
-    padding-left:1;
+ImportDiscovery Input {
+  margin-bottom: 1;
+  padding-left: 1;
 }
 
-GDTFFile {   
-    background: $boost;
-    height: 3;
-    margin-left: 0;
-    margin-bottom:0;
-    border: white;
+GDTFFile {
+  background: $boost;
+  height: 3;
+  margin-left: 0;
+  margin-bottom: 0;
+  border: white;
 }
 
-LocalFile {   
-    background: $boost;
-    height: 3;
-    margin-left: 0;
-    margin-bottom:0;
-    border: white;
+LocalFile {
+  background: $boost;
+  height: 3;
+  margin-left: 0;
+  margin-bottom: 0;
+  border: white;
 }
-GDTFScreen #row2{
-    height: auto;
+GDTFScreen #row2 {
+  height: auto;
 }
 
-LocalFile Button{
-    dock: right;
-    width: 10;
-    height: 1;
-    margin-left: 1;
-    margin-right: 1;
-    margin-top:0;
-    margin-bottom: 0;
-    padding: 0;
-    border: none;
-    background: blue;
+LocalFile Button {
+  dock: right;
+  width: 10;
+  height: 1;
+  margin-left: 1;
+  margin-right: 1;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0;
+  border: none;
+  background: blue;
 }
-GDTFFile Button{
-    dock: right;
-    width: 10;
-    height: 1;
-    margin-left: 1;
-    margin-right: 1;
-    margin-top:0;
-    margin-bottom: 0;
-    padding: 0;
-    border: none;
-    background: blue;
+GDTFFile Button {
+  dock: right;
+  width: 10;
+  height: 1;
+  margin-left: 1;
+  margin-right: 1;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0;
+  border: none;
+  background: blue;
 }
 VerticalScroll {
-    height: 100%;
+  height: 100%;
 }
-#search_bar{
-    border: round white;
-    height:3;
-    layout: horizontal;
+#search_bar {
+  border: round white;
+  height: 3;
+  layout: horizontal;
 }
-#filter_filename{
-    margin-left: 0;
-    padding: 0;
-    width: 1fr;
-    border: none;
-    height: auto;
+#filter_filename {
+  margin-left: 0;
+  padding: 0;
+  width: 1fr;
+  border: none;
+  height: auto;
 }
 
-#filter_manufacturer{
-    margin-left: 0;
-    padding: 0;
-    width: 1fr;
-    border: none;
-    height: auto;
+#filter_manufacturer {
+  margin-left: 0;
+  padding: 0;
+  width: 1fr;
+  border: none;
+  height: auto;
 }
-#manufacturer_only_bar{
-    height: auto;
-    padding: 0;
-    border: none;
-    width: 2fr;
+#manufacturer_only_bar {
+  height: auto;
+  padding: 0;
+  border: none;
+  width: 2fr;
 }
-#manufacturer_only_label{
-    height: 1;
-    padding: 0;
-    border: none;
+#manufacturer_only_label {
+  height: 1;
+  padding: 0;
+  border: none;
 }
-GDTFScreen #listing_gdtf, #listing_local{
-        width: 1fr;
-        height: 100%;
-    }
-GDTFScreen SelectCurrent, SelectCurrent:focus {
-        border: none;
-    }
+GDTFScreen #listing_gdtf,
+#listing_local {
+  width: 1fr;
+  height: 100%;
+}
+GDTFScreen SelectCurrent,
+SelectCurrent:focus {
+  border: none;
+}
 
-GDTFMapping SelectCurrent, SelectCurrent:focus {
-        border: none;
-    }
-#gdtf_select, #select_gdtf {
-width: 1fr}
+GDTFMapping SelectCurrent,
+SelectCurrent:focus {
+  border: none;
+}
+#gdtf_select,
+#select_gdtf {
+  width: 1fr;
+}

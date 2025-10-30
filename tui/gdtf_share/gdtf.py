@@ -219,6 +219,8 @@ class GDTFScreen(ModalScreen):
                 f"[bold]GDTF Share Files:[/bold] Showing 50 of {len(filtered_data)}:"
             )
         )
+
+        self.set_focus(self.query_one("#filter_filename"))
         for fixture in filtered_data[0:50]:
             listing.mount(GDTFFile(fixture))
 

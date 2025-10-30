@@ -18,25 +18,25 @@
  */
 
 QuitScreen {
-    align: center middle;
+  align: center middle;
 }
 
 QuitScreen #dialog {
-    grid-size: 1;
-    grid-gutter: 1;
-    padding: 0 1;
-    width: 60;
-    height: 10;
-    border: round white;
-    background: $surface;
+  grid-size: 1;
+  grid-gutter: 1;
+  padding: 0 1;
+  width: 60;
+  height: 10;
+  border: round white;
+  background: $surface;
 }
 
 QuitScreen #question {
-    height: 100%;
-    content-align: center middle;
+  height: 100%;
+  content-align: center middle;
 }
 
 #quit_buttons {
-    align-horizontal: center;
-    padding-top: 1;
+  align-horizontal: center;
+  padding-top: 1;
 }
