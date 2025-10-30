@@ -25,13 +25,14 @@ def get_layer_name(uuid, mvr_layers):
             return layer_name
 
 
-def create_mvr(devices, mvr_layers, save_to):
+def create_mvr(devices, mvr_layers, gdtf_map, save_to):
     mvr_writer = pymvr.GeneralSceneDescriptionWriter()
     scene_obj = pymvr.Scene()
     aux_data = pymvr.AUXData()
     layers = pymvr.Layers()
     scene_obj.layers = layers
     scene_obj.aux_data = aux_data
+    files_to_pack = []
 
     for layer_uuid, fixtures in devices.items():
         layer_name = get_layer_name(layer_uuid, mvr_layers)
@@ -46,7 +47,16 @@ def create_mvr(devices, mvr_layers, save_to):
             if net_fixture.ip_address is None:
                 continue
             fixture = pymvr.Fixture(name=net_fixture.short_name)
+            if net_fixture.short_name in gdtf_map:
+                fixture.gdtf_spec = gdtf_map[net_fixture.short_name]
+
             fixture.addresses.network.append(pymvr.Network(ipv4=net_fixture.ip_address))
+
+            if fixture.gdtf_spec:
+                files_to_pack.append(
+                    (Path("gdtf_files") / fixture.gdtf_spec, fixture.gdtf_spec)
+                )
+
             if net_fixture.address is not None:
                 address = 1
                 universe = 1
@@ -66,6 +76,6 @@ def create_mvr(devices, mvr_layers, save_to):
             child_list.fixtures.append(fixture)
 
     scene_obj.to_xml(parent=mvr_writer.xml_root)
-
+    mvr_writer.files_list = list(set(files_to_pack))
     output_path = save_to.with_suffix(".mvr")
     mvr_writer.write_mvr(output_path)

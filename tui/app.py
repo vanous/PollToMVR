@@ -57,7 +57,9 @@ class GDTFMapping(VerticalScroll):
         self.remove_children()
 
         path = Path("gdtf_files")
-        gdtf_files_list = [(p.stem, p) for p in path.iterdir() if p.suffix == ".gdtf"]
+        gdtf_files_list = [
+            (p.stem, p.name) for p in path.iterdir() if p.suffix == ".gdtf"
+        ]
         fixtures = set(
             [
                 fixture.short_name
@@ -67,15 +69,30 @@ class GDTFMapping(VerticalScroll):
         )
 
         for fixture in fixtures:
-            self.mount(
-                Horizontal(
-                    Static(f"[green]{fixture}[/green]", id="gdtf_select"),
-                    Select(
-                        options=gdtf_files_list,
-                        id="select_gdtf",
-                    ),
-                )
-            )
+            self.mount(GDTFMappedFixture(fixture, gdtf_files_list))
+
+
+class GDTFMappedFixture(Horizontal):
+    def __init__(self, fixture, gdtf_files_list):
+        self.fixture = fixture
+        self.gdtf_files_list = gdtf_files_list
+        super().__init__()
+
+    def compose(self) -> ComposeResult:
+        yield Static(f"[green]{self.fixture}[/green]", id="gdtf_select")
+        yield Select(
+            options=self.gdtf_files_list,
+            id="select_gdtf",
+        )
+
+    def on_mount(self):
+        if self.fixture in self.app.gdtf_map:
+            select = self.query_one("#select_gdtf")
+            select.value = self.app.gdtf_map[self.fixture]
+
+    def on_select_changed(self, event: Select.Changed):
+        if str(event.value) and str(event.value) != "Select.BLANK":
+            self.app.gdtf_map[self.fixture] = event.value
 
 
 class ArtPollToMVR(App):
@@ -107,6 +124,7 @@ class ArtPollToMVR(App):
 
     mvr_fixtures = {}
     mvr_layers = [("Default", str(py_uuid.uuid4()))]
+    gdtf_map = {}
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
@@ -222,7 +240,7 @@ class ArtPollToMVR(App):
                     filters=Filters(("MVR", lambda p: p.suffix.lower() == ".mvr")),
                 )
             ):
-                create_mvr(self.mvr_fixtures, self.mvr_layers, save_to)
+                create_mvr(self.mvr_fixtures, self.mvr_layers, self.gdtf_map, save_to)
                 self.notify("Saved", timeout=1)
 
 

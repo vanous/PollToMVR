@@ -292,6 +292,7 @@ class GDTFScreen(ModalScreen):
 
     def on_file_downloaded(self, message: FileDownloaded) -> None:
         self.refresh_local_listing()
+        self.app.gdtf_mapping.update_items()
 
     def on_share_updated(self, message: ShareUpdated) -> None:
         self.reload_share_data()
