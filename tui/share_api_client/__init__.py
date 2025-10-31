@@ -95,7 +95,7 @@ class GdtfShareApi:
                     fixture.get("manufacturer"),
                     fixture.get("rid"),
                 )
-            filename = f"{fixture.get('manufacturer').replace(' ', '_').replace('/', '_')}@{fixture.get('fixture').replace(' ', '_').replace('/', '_')}@{fixture.get('revision').replace(' ', '_').replace('/', '_')}.gdtf"
+            filename = f"{fixture.get('manufacturer').replace(' ', '_').replace('/', '_')}@{fixture.get('fixture').replace(' ', '_').replace('/', '_')}@{fixture.get('rid')}.gdtf"
 
             res = self.make_call(
                 slug="downloadFile.php", url_params=f"rid={fixture.get('rid')}"

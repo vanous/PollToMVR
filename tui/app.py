@@ -53,13 +53,44 @@ class MVRDisplay(VerticalScroll):
 
 
 class GDTFMapping(VerticalScroll):
+    def get_fixture(self, rid):
+        if not self.app.gdtf_data:
+            data_file = Path("data.json")
+            if data_file.exists():
+                with open(data_file, "r") as f:
+                    self.app.gdtf_data = json.load(f)
+        for fixture in self.app.gdtf_data:
+            if str(fixture.get("rid")) == str(rid):
+                return fixture
+        return {}
+
+    def create_label(self, stem):
+        sections = stem.split("@")
+        rid = sections[-1]
+        share_fixture = self.get_fixture(rid)
+        name = share_fixture.get("fixture", stem)
+        manufacturer = share_fixture.get("manufacturer")
+        revision = share_fixture.get("revision")
+        return (
+            f"{name}"
+            f"{f' ({manufacturer})' if manufacturer else ''}"
+            f"{f' {revision}' if revision else ''}"
+        )
+        return stem
+
     def update_items(self):
         self.remove_children()
 
         path = Path("gdtf_files")
-        gdtf_files_list = [
-            (p.stem, p.name) for p in path.iterdir() if p.suffix == ".gdtf"
-        ]
+
+        gdtf_files_list = sorted(
+            [
+                (self.create_label(p.stem), p.name)
+                for p in path.iterdir()
+                if p.suffix == ".gdtf"
+            ]
+        )
+
         fixtures = set(
             [
                 fixture.short_name
@@ -125,6 +156,7 @@ class ArtPollToMVR(App):
     mvr_fixtures = {}
     mvr_layers = [("Default", str(py_uuid.uuid4()))]
     gdtf_map = {}
+    gdtf_data = []
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
@@ -181,9 +213,7 @@ class ArtPollToMVR(App):
                     )
 
             def import_discovered(data):
-                print("import_data", "start")
                 if data:
-                    print(data)
                     layer_id = data.get("layer_id", None)
                     layer_name = data.get("layer_name", None)
                     devices = data.get("devices", [])

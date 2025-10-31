@@ -49,16 +49,25 @@ class ShareUpdated(Message): ...
 class LocalFile(HorizontalGroup):
     name = ""
     filename = None
+    manufacturer = ""
+    revision = ""
+    fixture = None
 
-    def __init__(self, filename=None):
-        if filename:
-            self.filename = filename
-            # sections = filename.split("@")
-            self.name = Path(filename).stem
+    def __init__(self, filename=None, share_fixture=None):
         super().__init__()
+        self.filename = filename
+        self.fixture = share_fixture
+        self.name = self.fixture.get("fixture", Path(filename).stem)
+        self.manufacturer = self.fixture.get("manufacturer", "")
+        self.revision = self.fixture.get("revision", "")
 
     def compose(self):
-        yield Static(f"{self.name}", id="name")
+        yield Static(
+            f"{self.name}"
+            f"{f' ({self.manufacturer})' if self.manufacturer else ''}"
+            f"{f' {self.revision}' if self.revision else ''}",
+            id="name",
+        )
         yield Button("Delete", id="delete")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -93,11 +102,12 @@ class GDTFFile(HorizontalGroup):
             self.brand = fixture.get("manufacturer")
             self.manufacturer_file = fixture.get("uploader") == "Manuf."
             self.creator = fixture.get("creator")
+            self.revision = fixture.get("revision")
         super().__init__()
 
     def compose(self):
         yield Static(
-            f"{self.name} ({self.brand}) {'🏭' if self.manufacturer_file else '🧑'}",
+            f"{self.name} ({self.brand}) {'🏭' if self.manufacturer_file else '🧑'} {self.revision}",
             id="name",
         )
         yield Button("Download", id="download")
@@ -134,7 +144,6 @@ class GDTFScreen(ModalScreen):
     ]
 
     data_file = Path("data.json")
-    gdtf_data = []
     debounce_task = None
 
     def compose(self) -> ComposeResult:
@@ -183,10 +192,10 @@ class GDTFScreen(ModalScreen):
         self.refresh_share_listing()
 
     def on_mount(self):
-        self.gdtf_data = []
+        self.app.gdtf_data = []
         if self.data_file.exists():
             with open(self.data_file, "r") as f:
-                self.gdtf_data = json.load(f)
+                self.app.gdtf_data = json.load(f)
         self.refresh_share_listing()
         self.refresh_local_listing()
 
@@ -212,17 +221,25 @@ class GDTFScreen(ModalScreen):
         if filter_uploader != "all":
             filters.append(lambda fix: fix["uploader"] == filter_uploader)
 
-        filtered_data = [fix for fix in self.gdtf_data if all(f(fix) for f in filters)]
+        filtered_data = [
+            fix for fix in self.app.gdtf_data if all(f(fix) for f in filters)
+        ]
 
         listing.mount(
             Static(
-                f"[bold]GDTF Share Files:[/bold] Showing 50 of {len(filtered_data)}:"
+                f"[bold]GDTF Share Files:[/bold]{f' Showing 50 of {len(filtered_data)}:' if filtered_data else ''}"
             )
         )
 
         self.set_focus(self.query_one("#filter_filename"))
         for fixture in filtered_data[0:50]:
             listing.mount(GDTFFile(fixture))
+
+    def get_fixture(self, rid):
+        for fixture in self.app.gdtf_data:
+            if str(fixture.get("rid")) == str(rid):
+                return fixture
+        return {}
 
     def refresh_local_listing(self):
         listing = self.query_one("#listing_local")
@@ -232,7 +249,11 @@ class GDTFScreen(ModalScreen):
 
         listing.mount(Static("[bold]Downloaded Files:[/bold]"))
         for fixture in gdtf_files_list:
-            listing.mount(LocalFile(fixture))
+            stem = Path(fixture).stem
+            sections = stem.split("@")
+            rid = sections[-1]
+            share_fixture = self.get_fixture(rid)
+            listing.mount(LocalFile(fixture, share_fixture))
 
     def callback(self, function, result):
         function(result)
@@ -247,7 +268,7 @@ class GDTFScreen(ModalScreen):
     def reload_share_data(self):
         if self.data_file.exists():
             with open(self.data_file, "r") as f:
-                self.gdtf_data = json.load(f)
+                self.app.gdtf_data = json.load(f)
         if self.query_one("#filter_manufacturer").value == "":
             self.refresh_share_listing()
         else:
@@ -296,3 +317,4 @@ class GDTFScreen(ModalScreen):
 
     def on_share_updated(self, message: ShareUpdated) -> None:
         self.reload_share_data()
+        self.refresh_local_listing()
