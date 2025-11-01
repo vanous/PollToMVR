@@ -3,17 +3,17 @@
 <img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/PollToMVR_icon.png" width="128px">
 
 [PollToMVR](https://github.com/vanous/PollToMVR) - a tool to perform network
-discovery via ArtNet - ArtPoll and save found devices in an
+discovery via ArtNet - ArtPoll and to save found devices in an
 [MVR](https://gdtf-share.com/) (My Virtual Rig) scene file.
 
 <img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/polltomvr_00.png">
 
-## Features
+## Overview
 
 - Uses  [pymvr](https://pypi.org/project/pymvr/) to write fixtures to MVR files
 - Provides Graphical [Terminal User Interface](https://textual.textualize.io/)
-- Uses ArtPoll based device network discovery to create an MVR file with list of devices discovered on the network
-- Uses the [GDTF Share](https://gdtf-share.com) Fixture Library
+- Uses ArtPoll based device network discovery, can parse DMX Address and Universe from device description if present
+- Uses the [GDTF Share](https://gdtf-share.com) Fixture Library for fixture definitions in MVR
 
 ## FAQ
 
@@ -29,6 +29,12 @@ This is not a general tool to create MVR files.
 
 Read the [Quick Start](#quick-start), see [Screenshots](#screenshots), for
 further documentation, check out [Features](#features).
+
+### Does it use ArtRDM?
+
+No, it only uses ArtPoll and ArtPollReply. Some manufacturers put DMX
+Address/Universe into `long_name`. If present and parsed, these values will
+then be used in the MVR export.
 
 ## Instalation
 
@@ -53,35 +59,39 @@ Hub](https://gdtf.eu/).
 - After discovery, press the "Add devices to MVR Layer", click Add
 - Click `Save Devices` to store the result as an MVR file
 
-This will create a barebone MVR file with device names and their IP addresses (and Universes, DMX address, if also discovered).
+This will create a barebone MVR file with device names and their IP addresses
+(and Universes, DMX address, if also discovered). For more featured MVR: set
+user login credential in the Config, download some GDTF files and after network
+discovery, link the GDTFs to the discovered fixtures. After saving, the MVR
+will also contain the full GDTF definitions
 
 ## Features
 
 - ### Config
     - Network Discovery Timeout: how long for should be the waiting for
-      ArtPolly from devices
+      ArtPollReply from devices
     - GDTF Share credentials: fill in username/password to be able to download
-      GDTF files from GDTF Share
+      GDTF files from GDTF Share, create a free account there if needed
 - ### Main Screen
     - Shows a list of discovered devices
     - Shows the possibility to define a GDTF file for each device. This GDTF
-      file will then be used for the created MVR file
+      file will then be used for the created MVR file. To download the GDTF
+      files, use the GDTF Files button on the main screen.
 - ### Discover
-    - Create a list of devices found on the local network
+    - Discover devices on the local network
     - Select a network interface on which the discovery will run
 - ### Add Discovered Devices
-    - Either add the discovered devices to a selected MVR layer
+    - Add the discovered devices to a selected MVR layer
     - Create a new named MVR Layer
 - ### GDTF Files
-    - Update GDTF Share data - download the list of available GDTF files from
-      the GDTF Share
-    - Filter the devices by name, manufacturer name
+    - Update GDTF Share data - download the latest list of available GDTF files
+      from the GDTF Share
+    - Filter the devices by name or by a manufacturer name
     - Filter the devices by creator: Official Manufacturer Files or User
       created files
-    - Downloiad the GDTF files
+    - Download the GDTF files
 
 ## Screenshots
-
 
 <img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/polltomvr_00.png">
 
@@ -129,7 +139,7 @@ pkg install uv python3 wget
 ```sh
 wget https://github.com/vanous/PollToMVR/archive/refs/heads/master.zip
 unzip master.zip
-cd uptime-kume-mvr-master
+cd PollToMVR-master
 ```
 
 - You will need to edit the pyproject.toml and change python to 3.11, then you
@@ -157,6 +167,7 @@ Initial pyinstaller setup
 uv run pyinstaller packaging.spec
 ```
 
+```bibtex
 @software{pymvr2025,
   title        = {pyMVR: Python Library for My Virtual Rig},
   author       = {{OpenStage}},

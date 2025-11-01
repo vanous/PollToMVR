@@ -576,7 +576,7 @@ requires-dist = [
     { name = "ifaddr", specifier = ">=0.2.0" },
     { name = "pymvr", specifier = ">=1.0.4" },
     { name = "requests", specifier = ">=2.32.5" },
-    { name = "textual", specifier = ">=6.2.1" },
+    { name = "textual", specifier = ">=6.5.0" },
     { name = "textual-fspicker", specifier = ">=0.6.0" },
 ]
 

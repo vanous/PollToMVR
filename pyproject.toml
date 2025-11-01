@@ -1,14 +1,14 @@
 [project]
 name = "PolltoMVR"
 version = "0.1.0"
-description = "A tool to discover network devices via Art-Net ArtPoll and save them into [MVR](https://gdtf-share.com/) (My Virtual Rig) scene file"
+description = "A tool to discover network devices via Art-Net ArtPoll and to save them into [MVR](https://gdtf-share.com/) (My Virtual Rig) scene file"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "ifaddr>=0.2.0",
     "pymvr>=1.0.4",
     "requests>=2.32.5",
-    "textual>=6.2.1",
+    "textual>=6.5.0",
     "textual-fspicker>=0.6.0",
 ]
 
