@@ -158,7 +158,6 @@ class ArtPollToMVR(App):
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Header()
-        yield Footer()
         with Vertical(id="all_around"):
             with Horizontal():
                 with Vertical(id="mvr_data"):
@@ -172,7 +171,7 @@ class ArtPollToMVR(App):
 
             with Grid(id="action_buttons"):
                 yield Button("Discover", id="network_discovery")
-                yield Button("Save MVR", id="save_mvr")
+                yield Button("Save MVR", id="save_mvr", disabled=True)
                 yield Button("GDTF Files", id="gdtf_files")
                 yield Button("Configure", id="configure_button")
                 yield Button("Quit", variant="error", id="quit")
@@ -185,7 +184,7 @@ class ArtPollToMVR(App):
             with open(self.CONFIG_FILE, "r") as f:
                 try:
                     vars(self.configuration).update(json.load(f))
-                    self.notify("Config loaded...", timeout=1)
+                    self.notify("Configuration loaded...", timeout=1)
 
                 except json.JSONDecodeError:
                     # Handle empty or invalid JSON file
@@ -211,6 +210,7 @@ class ArtPollToMVR(App):
 
             def import_discovered(data):
                 if data:
+                    self.query_one("#save_mvr").disabled = False
                     layer_id = data.get("layer_id", None)
                     layer_name = data.get("layer_name", None)
                     devices = data.get("devices", [])
