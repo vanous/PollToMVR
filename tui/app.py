@@ -111,10 +111,7 @@ class GDTFMappedFixture(Horizontal):
 
     def compose(self) -> ComposeResult:
         yield Static(f"[green]{self.fixture}[/green]", id="gdtf_select")
-        yield Select(
-            options=self.gdtf_files_list,
-            id="select_gdtf",
-        )
+        yield Select(options=self.gdtf_files_list, id="select_gdtf", compact=False)
 
     def on_mount(self):
         if self.fixture in self.app.gdtf_map:

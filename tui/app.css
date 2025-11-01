@@ -199,6 +199,10 @@ GDTFMapping SelectCurrent,
 SelectCurrent:focus {
   border: none;
 }
+
+GDTFMapping SelectOverlay{
+width: 100;
+}
 #gdtf_select,
 #select_gdtf {
   width: 1fr;
