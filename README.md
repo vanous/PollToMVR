@@ -1,19 +1,19 @@
 # PollToMVR
 
-> [!Warning]
-> Under Heavy Development 🚧
-
 <img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/PollToMVR_icon.png" width="128px">
 
 [PollToMVR](https://github.com/vanous/PollToMVR) - a tool to perform network
 discovery via ArtNet - ArtPoll and save found devices in an
 [MVR](https://gdtf-share.com/) (My Virtual Rig) scene file.
 
+<img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/polltomvr_00.png">
+
 ## Features
 
 - Uses  [pymvr](https://pypi.org/project/pymvr/) to write fixtures to MVR files
 - Provides Graphical [Terminal User Interface](https://textual.textualize.io/)
 - Uses ArtPoll based device network discovery to create an MVR file with list of devices discovered on the network
+- Uses the [GDTF Share](https://gdtf-share.com) Fixture Library
 
 ## FAQ
 
@@ -23,13 +23,12 @@ A tool to quickly create an MVR file based on network scan.
 
 ### What this is not
 
-This is not a general tool to create MVR files. 
+This is not a general tool to create MVR files.
 
 ### How do i use PollToMVR?
 
-Read the [Quick Start](#quick-start), see [Screenshots](#screenshots) and
-[Recording](#recording), for further documentation, check out
-[Features](#features).
+Read the [Quick Start](#quick-start), see [Screenshots](#screenshots), for
+further documentation, check out [Features](#features).
 
 ## Instalation
 
@@ -50,17 +49,49 @@ Hub](https://gdtf.eu/).
 ## Quick Start
 
 - Start the PollToMVR
-- Select the desired network interface
-- Run Discovery
-- Use `Save Devices` to store the result as an MVR file
+- Click Discover to run discovery
+- After discovery, press the "Add devices to MVR Layer", click Add
+- Click `Save Devices` to store the result as an MVR file
+
+This will create a barebone MVR file with device names and their IP addresses (and Universes, DMX address, if also discovered).
 
 ## Features
 
-- ### Network Discovery
-    - Create a list of devices found on the local network. MVR file with
-      these devices is created
-    - Import the discovered devices directly, or from the created file
+- ### Config
+    - Network Discovery Timeout: how long for should be the waiting for
+      ArtPolly from devices
+    - GDTF Share credentials: fill in username/password to be able to download
+      GDTF files from GDTF Share
+- ### Main Screen
+    - Shows a list of discovered devices
+    - Shows the possibility to define a GDTF file for each device. This GDTF
+      file will then be used for the created MVR file
+- ### Discover
+    - Create a list of devices found on the local network
+    - Select a network interface on which the discovery will run
+- ### Add Discovered Devices
+    - Either add the discovered devices to a selected MVR layer
+    - Create a new named MVR Layer
+- ### GDTF Files
+    - Update GDTF Share data - download the list of available GDTF files from
+      the GDTF Share
+    - Filter the devices by name, manufacturer name
+    - Filter the devices by creator: Official Manufacturer Files or User
+      created files
+    - Downloiad the GDTF files
 
+## Screenshots
+
+
+<img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/polltomvr_00.png">
+
+<img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/polltomvr_01.png">
+
+<img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/polltomvr_02.png">
+
+<img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/polltomvr_03.png">
+
+<img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/polltomvr_04.png">
 
 ## Requirements for usage via source code
 
@@ -130,7 +161,7 @@ uv run pyinstaller packaging.spec
   title        = {pyMVR: Python Library for My Virtual Rig},
   author       = {{OpenStage}},
   year         = {2025},
-  version      = {1.0.3},
+  version      = {1.0.4},
   url          = {https://github.com/open-stage/python-mvr}
 }
 ```
