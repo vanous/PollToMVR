@@ -198,6 +198,7 @@ class GDTFScreen(ModalScreen):
                 self.app.gdtf_data = json.load(f)
         self.refresh_share_listing()
         self.refresh_local_listing()
+        self.set_focus(self.query_one("#filter_filename"))
 
     def refresh_share_listing(self):
         listing = self.query_one("#listing_share")
@@ -231,7 +232,6 @@ class GDTFScreen(ModalScreen):
             )
         )
 
-        self.set_focus(self.query_one("#filter_filename"))
         for fixture in filtered_data[0:50]:
             listing.mount(GDTFFile(fixture))
 
