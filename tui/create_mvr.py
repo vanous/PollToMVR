@@ -50,7 +50,10 @@ def create_mvr(devices, mvr_layers, gdtf_map, save_to):
             if net_fixture.short_name in gdtf_map:
                 fixture.gdtf_spec = gdtf_map[net_fixture.short_name]
 
-            fixture.addresses.network.append(pymvr.Network(ipv4=net_fixture.ip_address))
+            if net_fixture.ip_address:
+                fixture.addresses.network.append(
+                    pymvr.Network(ipv4=net_fixture.ip_address)
+                )
 
             if fixture.gdtf_spec:
                 files_to_pack.append(

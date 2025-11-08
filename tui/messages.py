@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from textual.message import Message
+from dataclasses import dataclass
 
 
 class MvrParsed(Message):
@@ -44,10 +45,25 @@ class NetworkDevicesDiscovered(Message):
         super().__init__()
 
 
+@dataclass
 class RdmDevicesDiscovered(Message):
-    """Message sent when monitors are fetched from the API."""
+    """Message with discovered devices."""
 
-    def __init__(self, devices: list | None = None, error: str = "") -> None:
-        self.devices = devices
-        self.error = error
-        super().__init__()
+    devices: list | None = None
+    error: str = ""
+
+
+@dataclass
+class RdmDeviceDetailDiscovered(Message):
+    """Message with discovered device details."""
+
+    data: dict | None = None
+    error: str = ""
+
+
+@dataclass
+class RdmDiscoveryMessage(Message):
+    """Message to signal RDM discovery is complete."""
+
+    label: str = ""
+    disabled: bool = False
