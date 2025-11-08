@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "ifaddr>=0.2.0",
     "pymvr>=1.0.4",
+    "pyserial>=3.5",
     "requests>=2.32.5",
     "textual>=6.5.0",
     "textual-fspicker>=0.6.0",

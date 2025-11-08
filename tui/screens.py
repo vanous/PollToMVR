@@ -22,12 +22,15 @@ from textual.containers import Grid, Horizontal, Vertical
 from textual.widgets import Button, Static, Input, Label, Checkbox, Select, Switch
 from textual import on, work, events
 from textual_fspicker import FileOpen, Filters
-from tui.messages import Errors, DevicesDiscovered
+from tui.messages import Errors, NetworkDevicesDiscovered, RdmDevicesDiscovered
 from tui.network import get_network_cards
 from tui.artnet import ArtNetDiscovery
+from tui.rdm_search import get_device_info, main
 import re
 import sys
 import json
+import serial
+import serial.tools.list_ports
 
 
 class QuitScreen(ModalScreen[bool]):
@@ -184,10 +187,33 @@ class ArtNetScreen(ModalScreen):
         if any(ip == "0.0.0.0" for name, ip in self.networks):
             select_widget.value = "0.0.0.0"  # for Win
         select_widget.refresh()  # Force redraw
+        self.get_robe_devices()
+
+    @work(thread=True)
+    def get_robe_devices(self) -> None:
+        """Find USB devices in a background worker."""
+        devices = []
+        ports = serial.tools.list_ports.comports()
+        for port in ports:
+            if port.description and "Runit WTX" in port.description:
+                print(f"Found port: {port.device} - {port.description}")
+                if get_device_info(port.device):
+                    devices.append(port)
+        self.app.call_from_thread(self.update_devices, devices)
+
+    def update_devices(self, devices: list) -> None:
+        """Update the Select widget with the found devices."""
+        sel = self.query_one("#networks_select", Select)
+        options = self.networks
+        options += [(f"{port.product}: {port.device}", port.device) for port in devices]
+        sel.set_options(options)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "do_start":
-            self.run_discovery()
+            if "dev" in self.network:
+                self.run_rdm_discovery()
+            else:
+                self.run_network_discovery()
             btn = self.query_one("#do_start")
             btn.disabled = True
             btn.label = "...discovering..."
@@ -201,7 +227,17 @@ class ArtNetScreen(ModalScreen):
             self.query_one("#do_start").disabled = False
 
     @work(thread=True)
-    async def run_discovery(self) -> str:
+    async def run_rdm_discovery(self) -> str:
+        try:
+            results_widget = self.query_one("#results", Static)
+            results_widget.update(f"Searching...")
+            discovered_devices = main(self.network)
+            self.post_message(NetworkDevicesDiscovered(devices=discovered_devices))
+        except Exception as e:
+            self.post_message(NetworkDevicesDiscovered(error=str(e)))
+
+    @work(thread=True)
+    async def run_network_discovery(self) -> str:
         try:
             results_widget = self.query_one("#results", Static)
             results_widget.update(
@@ -212,9 +248,9 @@ class ArtNetScreen(ModalScreen):
             timeout = float(self.app.configuration.artnet_timeout)
             result = discovery.discover_devices(timeout=timeout)
             discovery.stop()  # not really needed, as the thread will close...
-            self.post_message(DevicesDiscovered(devices=result))
+            self.post_message(NetworkDevicesDiscovered(devices=result))
         except Exception as e:
-            self.post_message(DevicesDiscovered(error=str(e)))
+            self.post_message(NetworkDevicesDiscovered(error=str(e)))
 
     def extract_uni_dmx(self, long_name):
         address = None
@@ -227,7 +263,7 @@ class ArtNetScreen(ModalScreen):
             universe = match.group(2)
         return universe, address
 
-    def on_devices_discovered(self, message: DevicesDiscovered) -> None:
+    def on_network_devices_discovered(self, message: NetworkDevicesDiscovered) -> None:
         devices = []
         results_widget = self.query_one("#results", Static)
         if message.devices:

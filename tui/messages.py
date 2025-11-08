@@ -35,7 +35,16 @@ class Errors(Message):
         super().__init__()
 
 
-class DevicesDiscovered(Message):
+class NetworkDevicesDiscovered(Message):
+    """Message sent when monitors are fetched from the API."""
+
+    def __init__(self, devices: list | None = None, error: str = "") -> None:
+        self.devices = devices
+        self.error = error
+        super().__init__()
+
+
+class RdmDevicesDiscovered(Message):
     """Message sent when monitors are fetched from the API."""
 
     def __init__(self, devices: list | None = None, error: str = "") -> None:
