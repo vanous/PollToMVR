@@ -558,7 +558,12 @@ def get_devices(ser):
     print("--- Starting RDM Discovery ---")
     discovered_uids, tn = discover_all_devices(ser, tn)
     print("found this", discovered_uids)
-    return discovered_uids
+    return discovered_uids, tn
+
+
+def get_device_details(ser, uid, tn):
+    device_data, tn = get_device_parameters(ser, uid, tn)
+    return device_data, tn
 
 
 if __name__ == "__main__":

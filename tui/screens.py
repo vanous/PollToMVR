@@ -22,10 +22,16 @@ from textual.containers import Grid, Horizontal, Vertical
 from textual.widgets import Button, Static, Input, Label, Checkbox, Select, Switch
 from textual import on, work, events
 from textual_fspicker import FileOpen, Filters
-from tui.messages import Errors, NetworkDevicesDiscovered, RdmDevicesDiscovered
+from tui.messages import (
+    Errors,
+    NetworkDevicesDiscovered,
+    RdmDevicesDiscovered,
+    RdmDeviceDetailDiscovered,
+    RdmDiscoveryMessage,
+)
 from tui.network import get_network_cards
 from tui.artnet import ArtNetDiscovery
-from tui.rdm_search import get_device_info, get_devices, get_port
+from tui.rdm_search import get_device_info, get_devices, get_port, get_device_details
 import re
 import sys
 import json
@@ -48,7 +54,7 @@ class QuitScreen(ModalScreen[bool]):
             Static("[bold]Are you sure you want to quit?[/bold]", id="question"),
             Horizontal(
                 Button("Yes", variant="error", id="yes"),
-                Button("No", variant="primary", id="no"),
+                Button("No", "primary", id="no"),
                 id="quit_buttons",
             ),
             id="dialog",
@@ -117,8 +123,8 @@ class ConfigScreen(ModalScreen[dict]):
                     password=True,
                 )
             yield Horizontal(
-                Button("Save", variant="success", id="save"),
-                Button("Cancel", variant="error", id="cancel"),
+                Button("Save", "success", id="save"),
+                Button("Cancel", "error", id="cancel"),
                 id="config_buttons",
             )
 
@@ -228,15 +234,27 @@ class ArtNetScreen(ModalScreen):
 
     @work(thread=True)
     async def run_rdm_discovery(self) -> str:
+        port = None
         try:
             results_widget = self.query_one("#results", Static)
-            results_widget.update(f"Searching...")
+            results_widget.update("Searching...")
             port = get_port(self.network)
-            discovered_devices = get_devices(port)
-            uid_list = [{"uid": uid.hex(":")} for uid in discovered_devices]
+            discovered_uids, tn = get_devices(port)
+            uid_list = [{"uid": uid.hex(":")} for uid in discovered_uids]
             self.post_message(RdmDevicesDiscovered(devices=uid_list))
+
+            self.post_message(
+                RdmDiscoveryMessage(label="...getting RDM data...", disabled=True)
+            )
+            for uid in discovered_uids:
+                device_data, tn = get_device_details(port, uid, tn)
+                self.post_message(RdmDeviceDetailDiscovered(data=device_data))
+            self.post_message(RdmDiscoveryMessage(label="Discover", disabled=False))
         except Exception as e:
             self.post_message(RdmDevicesDiscovered(error=str(e)))
+        finally:
+            if port and port.is_open:
+                port.close()
 
     @work(thread=True)
     async def run_network_discovery(self) -> str:
@@ -251,6 +269,7 @@ class ArtNetScreen(ModalScreen):
             result = discovery.discover_devices(timeout=timeout)
             discovery.stop()  # not really needed, as the thread will close...
             self.post_message(NetworkDevicesDiscovered(devices=result))
+            self.post_message(RdmDiscoveryMessage(label="Discover", disabled=False))
         except Exception as e:
             self.post_message(NetworkDevicesDiscovered(error=str(e)))
 
@@ -264,6 +283,11 @@ class ArtNetScreen(ModalScreen):
             address = match.group(1)
             universe = match.group(2)
         return universe, address
+
+    def on_rdm_discovery_message(self, message: RdmDiscoveryMessage) -> None:
+        btn = self.query_one("#do_start")
+        btn.disabled = message.disabled
+        btn.label = message.label
 
     def on_rdm_devices_discovered(self, message: RdmDevicesDiscovered) -> None:
         devices = []
@@ -301,6 +325,7 @@ class ArtNetScreen(ModalScreen):
                 address = device_info.get("dmx_start_address", "")
                 devices.append(
                     SimpleNamespace(
+                        uid=uid,
                         ip_address=ip_address,
                         short_name=short_name,
                         universe=universe,
@@ -308,7 +333,7 @@ class ArtNetScreen(ModalScreen):
                     )
                 )
             result = "\n".join(
-                f"{item.short_name} {item.ip_address} {item.universe or ''} {item.address or ''}"
+                f"{item.short_name} {f'IP Address: {item.ip_address}' if item.ip_address else ''} {f'Universe: {item.universe}' if item.universe else ''} {f'Address: {item.address}' if item.address else ''}"
                 for item in devices
             )
 
@@ -320,12 +345,36 @@ class ArtNetScreen(ModalScreen):
 
         self.discovered_devices = devices
         results_widget.update(result)
-        btn = self.query_one("#do_start")
-        btn.disabled = False
-        btn.label = "Discover"
+
         if len(devices):
             btn = self.query_one("#close_discovery")
             btn.label = f"Add {len(devices)} device{'s' if len(devices) > 1 else ''} to MVR Layer"
+
+    def on_rdm_device_detail_discovered(
+        self, message: RdmDeviceDetailDiscovered
+    ) -> None:
+        """Update a single device with details."""
+        if message.data:
+            uid_to_update = message.data.get("uid")
+            for i, device in enumerate(self.discovered_devices):
+                if device.uid == uid_to_update:
+                    device.short_name = message.data.get(
+                        "device_model_description", device.uid
+                    )
+                    device_info = message.data.get("device_info", {})
+                    device.address = device_info.get("dmx_start_address", "")
+                    self.discovered_devices[i] = device
+                    break
+
+            # Regenerate the results text
+            results_text = "\n".join(
+                f"{item.short_name} {f'IP Address: {item.ip_address}' if item.ip_address else ''} {f'Universe: {item.universe}' if item.universe else ''} {f'Address: {item.address}' if item.address else ''}"
+                for item in self.discovered_devices
+            )
+            results_widget = self.query_one("#results", Static)
+            results_widget.update(
+                f"[green]Found {len(self.discovered_devices)}:[/green]\n\n{results_text}"
+            )
 
     def on_network_devices_discovered(self, message: NetworkDevicesDiscovered) -> None:
         devices = []
@@ -356,9 +405,6 @@ class ArtNetScreen(ModalScreen):
 
         self.discovered_devices = devices
         results_widget.update(result)
-        btn = self.query_one("#do_start")
-        btn.disabled = False
-        btn.label = "Discover"
         if len(devices):
             btn = self.query_one("#close_discovery")
             btn.label = f"Add {len(devices)} device{'s' if len(devices) > 1 else ''} to MVR Layer"
