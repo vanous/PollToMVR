@@ -195,6 +195,9 @@ SelectCurrent:focus {
   border: none;
 }
 
+GDTFMapping {
+  height: 2;
+}
 GDTFMapping SelectCurrent,
 SelectCurrent:focus {
   border: none;

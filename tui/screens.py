@@ -333,7 +333,7 @@ class ArtNetScreen(ModalScreen):
                     )
                 )
             result = "\n".join(
-                f"{item.short_name} {f'IP Address: {item.ip_address}' if item.ip_address else ''} {f'Universe: {item.universe}' if item.universe else ''} {f'Address: {item.address}' if item.address else ''}"
+                f"{item.short_name} {f'IP Address: {item.ip_address}' if item.ip_address else ''} {f'Universe: {item.universe}' if item.universe else ''} {f'DMX: {item.address}' if item.address else ''}"
                 for item in devices
             )
 
@@ -368,7 +368,7 @@ class ArtNetScreen(ModalScreen):
 
             # Regenerate the results text
             results_text = "\n".join(
-                f"{item.short_name} {f'IP Address: {item.ip_address}' if item.ip_address else ''} {f'Universe: {item.universe}' if item.universe else ''} {f'Address: {item.address}' if item.address else ''}"
+                f"{item.short_name} {f'IP Address: {item.ip_address}' if item.ip_address else ''} {f'Universe: {item.universe}' if item.universe else ''} {f'DMX: {item.address}' if item.address else ''}"
                 for item in self.discovered_devices
             )
             results_widget = self.query_one("#results", Static)

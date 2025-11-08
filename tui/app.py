@@ -47,7 +47,7 @@ class MVRDisplay(VerticalScroll):
             for fixture in fixtures:
                 self.mount(
                     Static(
-                        f"[green]{fixture.short_name}[/green] {fixture.universe or ''} {fixture.address or ''} {fixture.ip_address} "
+                        f"[green]{fixture.short_name}[/green] {f'IP Address: {fixture.ip_address}' if fixture.ip_address else ''} {f'Universe: {fixture.universe}' if fixture.universe else ''} {f'DMX: {fixture.address}' if fixture.address else ''}"
                     )
                 )
 
