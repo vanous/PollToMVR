@@ -302,7 +302,7 @@ def parse_rdm_response(rdm_data: bytes, sent_pid: int):
             else:
                 response_data = parse_ack(pd, pid, cc)
         else:
-            print(f"    └─ Received NACK or other response type.")
+            print("    └─ Received NACK or other response type.")
 
         return pid, response_data
 

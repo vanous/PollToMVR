@@ -2,8 +2,8 @@
 
 <img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/PollToMVR_icon.png" width="128px">
 
-[PollToMVR](https://github.com/vanous/PollToMVR) - a tool to perform network
-discovery via ArtNet - ArtPoll and to save found devices in an
+[PollToMVR](https://github.com/vanous/PollToMVR) - a tool to perform device
+discovery via ArtNet or RDM E1.20 and to save found devices in an
 [MVR](https://gdtf-share.com/) (My Virtual Rig) scene file.
 
 <img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/polltomvr_00.png">
@@ -13,13 +13,14 @@ discovery via ArtNet - ArtPoll and to save found devices in an
 - Uses  [pymvr](https://pypi.org/project/pymvr/) to write fixtures to MVR files
 - Provides Graphical [Terminal User Interface](https://textual.textualize.io/)
 - Uses ArtPoll based device network discovery, can parse DMX Address and Universe from device description if present
+- Uses RDM ANSI E1.20 via Robe RUNIT USB Interfaces for DMX line device discovery
 - Uses the [GDTF Share](https://gdtf-share.com) Fixture Library for fixture definitions in MVR
 
 ## FAQ
 
 ### What is this
 
-A tool to quickly create an MVR file based on network scan.
+A tool to quickly create an MVR file based on ArtPoll or RDM scan.
 
 ### What this is not
 
@@ -35,6 +36,12 @@ further documentation, check out [Features](#features).
 No, it only uses ArtPoll and ArtPollReply. Some manufacturers put DMX
 Address/Universe into `long_name`. If present and parsed, these values will
 then be used in the MVR export.
+
+### Can devices be discovered via RDM?
+
+Yes, PollToMVR can use ANSI E1.20 for device discovery and to query the device
+for Device Info and Device Model Description. Supported USB interfaces are the
+Robe Lighting: `Universal Interface` and `RUNIT WTX` interfaces.
 
 ## Instalation
 
@@ -55,11 +62,11 @@ Hub](https://gdtf.eu/).
 ## Quick Start
 
 - Start the PollToMVR
-- Click Discover to run discovery
+- Click Discover to run network discovery
 - After discovery, press the "Add devices to MVR Layer", click Add
 - Click `Save Devices` to store the result as an MVR file
 
-This will create a barebone MVR file with device names and their IP addresses
+This will create a bare-bone MVR file with device names and their IP addresses
 (and Universes, DMX address, if also discovered). For more featured MVR: set
 user login credential in the Config, download some GDTF files and after network
 discovery, link the GDTFs to the discovered fixtures. After saving, the MVR
@@ -78,8 +85,9 @@ will also contain the full GDTF definitions
       file will then be used for the created MVR file. To download the GDTF
       files, use the GDTF Files button on the main screen.
 - ### Discover
-    - Discover devices on the local network
+    - Discover devices on the local network or on DMX line
     - Select a network interface on which the discovery will run
+    - Select a USB based Runit interface for RDM based discovery
 - ### Add Discovered Devices
     - Add the discovered devices to a selected MVR layer
     - Create a new named MVR Layer
@@ -158,6 +166,14 @@ uv run textual console
 ```
 uv run textual run --dev run.py
 ```
+
+## Code formatting
+
+All python code is to be formatted with ruff:
+
+```
+uv tool run ruff format
+``
 
 ## Packaging
 

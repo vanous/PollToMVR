@@ -15,8 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from tui.app import ArtPollToMVR
+from tui.app import PollToMVR
 
 if __name__ == "__main__":
-    app = ArtPollToMVR()
+    app = PollToMVR()
     app.run()

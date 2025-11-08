@@ -15,22 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import functools
 import json
 import os
-import random
-import traceback
-import subprocess
 from types import SimpleNamespace
 from textual.app import App, ComposeResult
 from textual import on, work
 from textual.containers import Horizontal, Vertical, VerticalScroll, Grid
-from textual.widgets import Header, Footer, Input, Button, Static, Select
-from textual.worker import Worker, WorkerState
+from textual.widgets import Header, Button, Static, Select
 from tui.screens import ArtNetScreen, QuitScreen, ConfigScreen, ImportDiscovery
-from textual.message import Message
-from textual.reactive import reactive
-from tui.messages import MvrParsed, Errors
 import uuid as py_uuid
 from tui.create_mvr import create_mvr
 from textual_fspicker import FileSave, Filters
@@ -123,7 +115,7 @@ class GDTFMappedFixture(Horizontal):
             self.app.gdtf_map[self.fixture] = event.value
 
 
-class ArtPollToMVR(App):
+class PollToMVR(App):
     """A Textual app to manage Uptime Kuma MVR."""
 
     CSS_PATH = [
@@ -272,5 +264,5 @@ class ArtPollToMVR(App):
 
 
 if __name__ == "__main__":
-    app = ArtPollToMVR()
+    app = PollToMVR()
     app.run()
