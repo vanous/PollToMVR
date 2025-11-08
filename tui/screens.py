@@ -19,11 +19,9 @@ from types import SimpleNamespace
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Grid, Horizontal, Vertical
-from textual.widgets import Button, Static, Input, Label, Checkbox, Select, Switch
-from textual import on, work, events
-from textual_fspicker import FileOpen, Filters
+from textual.widgets import Button, Static, Input, Label, Select, Switch
+from textual import work, events
 from tui.messages import (
-    Errors,
     NetworkDevicesDiscovered,
     RdmDevicesDiscovered,
     RdmDeviceDetailDiscovered,
@@ -34,7 +32,6 @@ from tui.artnet import ArtNetDiscovery
 from tui.rdm_search import get_device_info, get_devices, get_port, get_device_details
 import re
 import sys
-import json
 import serial
 import serial.tools.list_ports
 
@@ -497,12 +494,12 @@ class ImportDiscovery(ModalScreen):
             layer_names = [x[0] for x in self.app.mvr_layers]
             if event.value in layer_names:
                 self.query_one("#add").disabled = True
-                self.notify(f"Layer name already exists", timeout=1)
+                self.notify("Layer name already exists", timeout=1)
             else:
                 self.query_one("#add").disabled = False
         else:
             self.query_one("#add").disabled = True
-            self.notify(f"Must not be empty", timeout=1)
+            self.notify("Must not be empty", timeout=1)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "add":
@@ -521,7 +518,7 @@ class ImportDiscovery(ModalScreen):
             layer_names = [x[0] for x in self.app.mvr_layers]
             if new_layer_name in layer_names:
                 self.query_one("#add").disabled = True
-                self.notify(f"Layer name already exists", timeout=1)
+                self.notify("Layer name already exists", timeout=1)
         self.focus_next()
 
     def action_focus_previous(self) -> None:
@@ -531,7 +528,7 @@ class ImportDiscovery(ModalScreen):
             layer_names = [x[0] for x in self.app.mvr_layers]
             if new_layer_name in layer_names:
                 self.query_one("#add").disabled = True
-                self.notify(f"Layer name already exists", timeout=1)
+                self.notify("Layer name already exists", timeout=1)
         self.focus_previous()
 
     async def on_key(self, event: events.Key) -> None:

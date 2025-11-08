@@ -15,26 +15,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from types import SimpleNamespace
 from textual.message import Message
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import (
-    Grid,
     Horizontal,
     Vertical,
     HorizontalGroup,
     VerticalScroll,
 )
-from textual.widgets import Button, Static, Input, Label, Checkbox, Select, Switch
-from textual import on, work, events
-from textual_fspicker import FileOpen, Filters
-from tui.messages import Errors, NetworkDevicesDiscovered
-from tui.network import get_network_cards
-from tui.artnet import ArtNetDiscovery
+from textual.widgets import Button, Static, Input, Select
+from textual import work, events
 from tui.share_api_client import update_data, download_files
-import re
-import sys
 from pathlib import Path
 import json
 import asyncio
