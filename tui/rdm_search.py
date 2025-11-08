@@ -119,9 +119,12 @@ def build_rdm_packet(
 def parse_text_response(pd: bytes):
     """Parses a simple null-terminated string response."""
     try:
-        print(f"    └─ Text: {pd.decode('utf-8', errors='ignore').strip()}")
+        text = pd.decode("utf-8", errors="ignore").strip()
+        print(f"    └─ Text: {text}")
+        return text
     except Exception as e:
         print(f"    └─ Error decoding text: {e}")
+        return None
 
 
 def parse_supported_parameters(pd: bytes):
@@ -131,6 +134,7 @@ def parse_supported_parameters(pd: bytes):
     for pid in pids:
         name = RDM_PARAMETER_NAMES.get(pid, "Unknown")
         print(f"        - 0x{pid:04x} ({name})")
+    return list(pids)
 
 
 def parse_device_info(pd: bytes):
@@ -160,24 +164,42 @@ def parse_device_info(pd: bytes):
     print(f"        - DMX Start Address: {dmx_address}")
     print(f"        - Sub-device Count: {sub_device_count}")
     print(f"        - Sensor Count: {sensor_count}")
+    return {
+        "rdm_protocol_version": f"{rdm_version >> 8}.{rdm_version & 0xFF}",
+        "device_model_id": model_id,
+        "product_category": category,
+        "software_version_id": sw_version,
+        "dmx512_footprint": footprint,
+        "dmx_personality": {
+            "current": current_personality,
+            "count": total_personalities,
+        },
+        "dmx_start_address": dmx_address,
+        "sub_device_count": sub_device_count,
+        "sensor_count": sensor_count,
+    }
 
 
 def parse_dmx_start_address(pd: bytes):
     """Parses the DMX_START_ADDRESS response."""
     address = struct.unpack(">H", pd)[0]
     print(f"    └─ DMX Start Address: {address}")
+    return address
 
 
 def parse_ack(pd: bytes, pid: int, cc: int):
     """Parses a generic ACK response."""
     if not pd:
         print("    └─ Acknowledged (no data).")
+        return True
     # For MUTE/UNMUTE, the PD is a 2-byte control field
     elif pid in [DISC_MUTE, DISC_UN_MUTE]:
         control_field = struct.unpack(">H", pd)[0]
         print(f"    └─ Acknowledged. Control Field: 0x{control_field:04x}")
+        return control_field
     else:
         print(f"    └─ Acknowledged with data: {pd.hex(' ')}")
+        return pd
 
 
 def parse_discovery_response(rdm_data: bytes):
@@ -233,7 +255,7 @@ def parse_rdm_response(rdm_data: bytes, sent_pid: int):
     """Parses the core RDM response packet."""
     if not rdm_data:
         print("  └─ Empty RDM data.")
-        return
+        return None, None
 
     try:
         sub_start = rdm_data[0]
@@ -262,27 +284,31 @@ def parse_rdm_response(rdm_data: bytes, sent_pid: int):
         print(f"  │  - PID: 0x{pid:04x} ({RDM_PARAMETER_NAMES.get(pid, 'Unknown')})")
         print(f"  │  - PDL: {pdl}")
 
+        response_data = None
         if response_type == 0x00:  # ACK
             if pid == DEVICE_INFO:
-                parse_device_info(pd)
+                response_data = parse_device_info(pd)
             elif pid == SUPPORTED_PARAMETERS:
-                parse_supported_parameters(pd)
+                response_data = parse_supported_parameters(pd)
             elif pid in [
                 DEVICE_LABEL,
                 SOFTWARE_VERSION_LABEL,
                 MANUFACTURER_LABEL,
                 DEVICE_MODEL_DESCRIPTION,
             ]:
-                parse_text_response(pd)
+                response_data = parse_text_response(pd)
             elif pid == DMX_START_ADDRESS:
-                parse_dmx_start_address(pd)
+                response_data = parse_dmx_start_address(pd)
             else:
-                parse_ack(pd, pid, cc)
+                response_data = parse_ack(pd, pid, cc)
         else:
             print(f"    └─ Received NACK or other response type.")
 
+        return pid, response_data
+
     except Exception as e:
         print(f"  └─ Error parsing RDM response: {e} (Data: {rdm_data.hex()})")
+        return None, None
 
 
 def parse_robe_response(response: bytes, sent_pid: int):
@@ -306,8 +332,11 @@ def parse_robe_response(response: bytes, sent_pid: int):
     rdm_data = rdm_data_with_trailer[:-4]
 
     if packet_type == PACKET_TYPE_RDM_RESPONSE:
-        parse_rdm_response(rdm_data, sent_pid)
-        return "ack", None  # Assuming any standard response is an ACK for our purposes
+        pid, rdm_response_data = parse_rdm_response(rdm_data, sent_pid)
+        return "ack", (
+            pid,
+            rdm_response_data,
+        )  # Assuming any standard response is an ACK for our purposes
     elif packet_type == PACKET_TYPE_RDM_DISCOVERY_RESPONSE:
         # Per the Robe API, a 4-byte data length for a discovery response
         # means the interface timed out waiting for a real RDM response.
@@ -478,61 +507,35 @@ def get_device_parameters(ser: serial.Serial, discovered_uid: bytes, tn: int):
     """
     print(f"\n--- Getting parameters for device: {discovered_uid.hex(':')} ---")
 
-    # rdm_packet = build_rdm_packet(discovered_uid, tn, GET_COMMAND, SUPPORTED_PARAMETERS)
-    # robe_packet = build_robe_packet(PACKET_TYPE_RDM_PACKET_OUT, rdm_packet)
-    # send_and_receive(ser, "Get Supported Parameters", robe_packet, SUPPORTED_PARAMETERS)
-    # tn += 1
+    device_data = {"uid": discovered_uid.hex(":")}
 
-    rdm_packet = build_rdm_packet(discovered_uid, tn, GET_COMMAND, DEVICE_INFO)
-    robe_packet = build_robe_packet(PACKET_TYPE_RDM_PACKET_OUT, rdm_packet)
-    send_and_receive(ser, "Get Device Info", robe_packet, DEVICE_INFO)
-    tn += 1
+    pids_to_get = [
+        SUPPORTED_PARAMETERS,
+        DEVICE_INFO,
+        MANUFACTURER_LABEL,
+        DEVICE_MODEL_DESCRIPTION,
+        DEVICE_LABEL,
+        SOFTWARE_VERSION_LABEL,
+        DMX_START_ADDRESS,
+    ]
 
-    # rdm_packet = build_rdm_packet(discovered_uid, tn, GET_COMMAND, MANUFACTURER_LABEL)
-    # robe_packet = build_robe_packet(PACKET_TYPE_RDM_PACKET_OUT, rdm_packet)
-    # send_and_receive(ser, "Get Manufacturer Label", robe_packet, MANUFACTURER_LABEL)
-    # tn += 1
+    for pid in pids_to_get:
+        rdm_packet = build_rdm_packet(discovered_uid, tn, GET_COMMAND, pid)
+        robe_packet = build_robe_packet(PACKET_TYPE_RDM_PACKET_OUT, rdm_packet)
 
-    rdm_packet = build_rdm_packet(
-        discovered_uid, tn, GET_COMMAND, DEVICE_MODEL_DESCRIPTION
-    )
-    robe_packet = build_robe_packet(PACKET_TYPE_RDM_PACKET_OUT, rdm_packet)
-    send_and_receive(
-        ser, "Get Device Model Description", robe_packet, DEVICE_MODEL_DESCRIPTION
-    )
-    tn += 1
+        pid_name = RDM_PARAMETER_NAMES.get(pid, f"0x{pid:04x}")
+        status, data = send_and_receive(ser, f"Get {pid_name}", robe_packet, pid)
+        tn += 1
 
-    # rdm_packet = build_rdm_packet(discovered_uid, tn, GET_COMMAND, DEVICE_LABEL)
-    # robe_packet = build_robe_packet(PACKET_TYPE_RDM_PACKET_OUT, rdm_packet)
-    # send_and_receive(ser, "Get Device Label", robe_packet, DEVICE_LABEL)
-    # tn += 1
+        if status == "ack" and data and data[1] is not None:
+            # data is (pid, response_data)
+            returned_pid, response_data = data
+            pid_name_key = RDM_PARAMETER_NAMES.get(
+                returned_pid, f"pid_{returned_pid}"
+            ).lower()
+            device_data[pid_name_key] = response_data
 
-    # rdm_packet = build_rdm_packet(
-    #    discovered_uid, tn, GET_COMMAND, SOFTWARE_VERSION_LABEL
-    # )
-    # robe_packet = build_robe_packet(PACKET_TYPE_RDM_PACKET_OUT, rdm_packet)
-    # send_and_receive(
-    #    ser, "Get Software Version Label", robe_packet, SOFTWARE_VERSION_LABEL
-    # )
-    # tn += 1
-
-    # dmx_address = 1
-    # pd = struct.pack(">H", dmx_address)
-    # rdm_packet = build_rdm_packet(
-    #     discovered_uid, tn, SET_COMMAND, DMX_START_ADDRESS, pd
-    # )
-    # robe_packet = build_robe_packet(PACKET_TYPE_RDM_PACKET_OUT, rdm_packet)
-    # send_and_receive(
-    #     ser, f"Set DMX Start Address to {dmx_address}", robe_packet, DMX_START_ADDRESS
-    # )
-    # tn += 1
-
-    # rdm_packet = build_rdm_packet(discovered_uid, tn, GET_COMMAND, DMX_START_ADDRESS)
-    # robe_packet = build_robe_packet(PACKET_TYPE_RDM_PACKET_OUT, rdm_packet)
-    # send_and_receive(ser, "Get DMX Start Address", robe_packet, DMX_START_ADDRESS)
-    # tn += 1
-
-    return tn
+    return device_data, tn
 
 
 def get_device_info(device_port):
@@ -548,49 +551,34 @@ def get_device_info(device_port):
             return True
 
 
-def main(device_port):
+def get_devices(ser):
     """Main function to run the device search and communication flow."""
-    try:
-        ser = serial.Serial(device_port, baudrate=250000, timeout=0.1)
-        print(f"Serial port {device_port} opened successfully.\n")
-    except serial.SerialException as e:
-        print(f"Error opening serial port: {e}")
-        return []
 
     tn = 0  # Transaction Number
-
     print("--- Starting RDM Discovery ---")
     discovered_uids, tn = discover_all_devices(ser, tn)
     print("found this", discovered_uids)
-    return [
-        {
-            "reported_ip": "",
-            "source_ip": "",
-            "short_name": uid.hex(":"),
-            "long_name": uid.hex(":"),
-        }
-        for uid in discovered_uids
-    ]
-
-    if not discovered_uids:
-        print("\n--- No devices discovered. Exiting. ---")
-        ser.close()
-        return []
-
-    print(f"\n--- Discovery finished. Found {len(discovered_uids)} device(s). ---")
-
-    # for uid in discovered_uids:
-    #    tn = get_device_parameters(ser, uid, tn)
-    # ser.close()
-
-    #   return {
-    #       "reported_ip": reported_ip,
-    #       "source_ip": addr[0],
-    #       "short_name": short_name,
-    #       "long_name": long_name,
-    #   }
-    print("\nCommunication flow complete. Serial port closed.")
+    return discovered_uids
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        ser = serial.Serial("/dev/ttyUSB0", baudrate=250000, timeout=0.1)
+    except serial.SerialException as e:
+        print(f"Error opening serial port: {e}")
+    result = get_devices(ser)
+    print(f"{result=}")
+    tn = 0
+    for uid in result:
+        device_data, tn = get_device_parameters(ser, uid, tn)
+        print(f"{device_data=}")
+    ser.close()
+
+
+def get_port(device_name):
+    ser = None
+    try:
+        ser = serial.Serial(device_name, baudrate=250000, timeout=0.1)
+    except serial.SerialException as e:
+        print(f"Error opening serial port: {e}")
+    return ser

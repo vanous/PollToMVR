@@ -25,7 +25,7 @@ from textual_fspicker import FileOpen, Filters
 from tui.messages import Errors, NetworkDevicesDiscovered, RdmDevicesDiscovered
 from tui.network import get_network_cards
 from tui.artnet import ArtNetDiscovery
-from tui.rdm_search import get_device_info, main
+from tui.rdm_search import get_device_info, get_devices, get_port
 import re
 import sys
 import json
@@ -187,10 +187,10 @@ class ArtNetScreen(ModalScreen):
         if any(ip == "0.0.0.0" for name, ip in self.networks):
             select_widget.value = "0.0.0.0"  # for Win
         select_widget.refresh()  # Force redraw
-        self.get_robe_devices()
+        self.get_robe_usb_devices()
 
     @work(thread=True)
-    def get_robe_devices(self) -> None:
+    def get_robe_usb_devices(self) -> None:
         """Find USB devices in a background worker."""
         devices = []
         ports = serial.tools.list_ports.comports()
@@ -199,9 +199,9 @@ class ArtNetScreen(ModalScreen):
                 print(f"Found port: {port.device} - {port.description}")
                 if get_device_info(port.device):
                     devices.append(port)
-        self.app.call_from_thread(self.update_devices, devices)
+        self.app.call_from_thread(self.update_usb_devices_list, devices)
 
-    def update_devices(self, devices: list) -> None:
+    def update_usb_devices_list(self, devices: list) -> None:
         """Update the Select widget with the found devices."""
         sel = self.query_one("#networks_select", Select)
         options = self.networks
@@ -231,10 +231,12 @@ class ArtNetScreen(ModalScreen):
         try:
             results_widget = self.query_one("#results", Static)
             results_widget.update(f"Searching...")
-            discovered_devices = main(self.network)
-            self.post_message(NetworkDevicesDiscovered(devices=discovered_devices))
+            port = get_port(self.network)
+            discovered_devices = get_devices(port)
+            uid_list = [{"uid": uid.hex(":")} for uid in discovered_devices]
+            self.post_message(RdmDevicesDiscovered(devices=uid_list))
         except Exception as e:
-            self.post_message(NetworkDevicesDiscovered(error=str(e)))
+            self.post_message(RdmDevicesDiscovered(error=str(e)))
 
     @work(thread=True)
     async def run_network_discovery(self) -> str:
@@ -262,6 +264,68 @@ class ArtNetScreen(ModalScreen):
             address = match.group(1)
             universe = match.group(2)
         return universe, address
+
+    def on_rdm_devices_discovered(self, message: RdmDevicesDiscovered) -> None:
+        devices = []
+
+        # {
+        #   "uid": "52:53:00:45:07:f8",
+        #   "device_info": {
+        #       "rdm_protocol_version": "1.0",
+        #       "device_model_id": 75,
+        #       "product_category": 256,
+        #       "software_version_id": 43,
+        #       "dmx512_footprint": 38,
+        #       "dmx_personality": {"current": 1, "count": 4},
+        #       "dmx_start_address": 1,
+        #       "sub_device_count": 0,
+        #       "sensor_count": 3,
+        #   },
+        #   "manufacturer_label": "Robe Lighting s.r.o.",
+        #   "device_model_description": "Robin MMX Spot",
+        #   "device_label": "aawww",
+        #   "software_version_label": "Sw.ver. 4.3",
+        #   "dmx_start_address": 1,
+        # }
+        results_widget = self.query_one("#results", Static)
+        if message.devices:
+            for device in message.devices:
+                uid = device.get("uid", None)
+                if uid is None:
+                    continue
+
+                short_name = device.get("device_model_description", uid)
+                device_info = device.get("device_info", {})
+                universe = 0
+                ip_address = ""
+                address = device_info.get("dmx_start_address", "")
+                devices.append(
+                    SimpleNamespace(
+                        ip_address=ip_address,
+                        short_name=short_name,
+                        universe=universe,
+                        address=address,
+                    )
+                )
+            result = "\n".join(
+                f"{item.short_name} {item.ip_address} {item.universe or ''} {item.address or ''}"
+                for item in devices
+            )
+
+        if devices:
+            result = f"[green]Found {len(devices)}:[/green]\n\n{result}"
+
+        else:
+            result = f"[red]No devices found {message.error}[/red]"
+
+        self.discovered_devices = devices
+        results_widget.update(result)
+        btn = self.query_one("#do_start")
+        btn.disabled = False
+        btn.label = "Discover"
+        if len(devices):
+            btn = self.query_one("#close_discovery")
+            btn.label = f"Add {len(devices)} device{'s' if len(devices) > 1 else ''} to MVR Layer"
 
     def on_network_devices_discovered(self, message: NetworkDevicesDiscovered) -> None:
         devices = []
