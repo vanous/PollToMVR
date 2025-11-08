@@ -172,7 +172,7 @@ class ArtNetScreen(ModalScreen):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="all_around"):
-            yield Static("Art-Net Discovery", id="question")
+            yield Static("Discovery", id="question")
             with Horizontal(id="row2"):
                 yield Button("Discover", id="do_start")
                 yield Button("Close", id="close_discovery")
@@ -198,17 +198,16 @@ class ArtNetScreen(ModalScreen):
         devices = []
         ports = serial.tools.list_ports.comports()
         for port in ports:
-            if port.description and "Runit WTX" in port.description:
-                print(f"Found port: {port.device} - {port.description}")
-                if get_device_info(port.device):
-                    devices.append(port)
+            print(f"Found port: {port.device} - {port.description}")
+            if get_device_info(port.device):
+                devices.append(port)
         self.app.call_from_thread(self.update_usb_devices_list, devices)
 
     def update_usb_devices_list(self, devices: list) -> None:
         """Update the Select widget with the found devices."""
         sel = self.query_one("#networks_select", Select)
         options = self.networks
-        options += [(f"{port.product}: {port.device}", port.device) for port in devices]
+        options += [(f"RUNIT: {port.device}", port.device) for port in devices]
         sel.set_options(options)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

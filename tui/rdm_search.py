@@ -539,7 +539,11 @@ def get_device_parameters(ser: serial.Serial, discovered_uid: bytes, tn: int):
 
 
 def get_device_info(device_port):
-    ser = serial.Serial(device_port, baudrate=250000, timeout=0.1)
+    try:
+        ser = serial.Serial(device_port, baudrate=250000, timeout=0.1)
+    except Exception as e:
+        print(e)
+        return False
     robe_packet = build_robe_packet(PACKET_TYPE_RDM_INFO_COMMAND, b"")
     ser.write(robe_packet)
     time.sleep(0.2)
