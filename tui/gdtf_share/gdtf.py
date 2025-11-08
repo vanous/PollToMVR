@@ -29,7 +29,7 @@ from textual.containers import (
 from textual.widgets import Button, Static, Input, Label, Checkbox, Select, Switch
 from textual import on, work, events
 from textual_fspicker import FileOpen, Filters
-from tui.messages import Errors, DevicesDiscovered
+from tui.messages import Errors, NetworkDevicesDiscovered
 from tui.network import get_network_cards
 from tui.artnet import ArtNetDiscovery
 from tui.share_api_client import update_data, download_files
