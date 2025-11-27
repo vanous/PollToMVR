@@ -51,7 +51,7 @@ def create_mvr(devices, mvr_layers, gdtf_map, save_to):
                 fixture.gdtf_spec = gdtf_map[net_fixture.short_name]
 
             if net_fixture.ip_address:
-                fixture.addresses.network.append(
+                fixture.addresses.networks.append(
                     pymvr.Network(ipv4=net_fixture.ip_address)
                 )
 
@@ -68,7 +68,7 @@ def create_mvr(devices, mvr_layers, gdtf_map, save_to):
                     universe = int(net_fixture.universe or 1)
                 except:
                     ...
-                fixture.addresses.address.append(
+                fixture.addresses.addresses.append(
                     pymvr.Address(
                         dmx_break=0,
                         universe=universe,
