@@ -18,7 +18,7 @@
 from types import SimpleNamespace
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
-from textual.containers import Grid, Horizontal, Vertical
+from textual.containers import Grid, Horizontal, Vertical, VerticalScroll
 from textual.widgets import Button, Static, Input, Label, Select, Switch
 from textual import work, events
 from tui.messages import (
@@ -178,7 +178,8 @@ class ArtNetScreen(ModalScreen):
                 yield Button("Close", id="close_discovery")
             yield Select([("", "")], id="networks_select", allow_blank=False)
             yield Static("", id="network")
-            yield Static("", id="results")
+            with VerticalScroll(id="results"):
+                yield Static("", id="results_text")
 
     def on_mount(self):
         select_widget = self.query_one("#networks_select", Select)
@@ -232,7 +233,7 @@ class ArtNetScreen(ModalScreen):
     async def run_rdm_discovery(self) -> str:
         port = None
         try:
-            results_widget = self.query_one("#results", Static)
+            results_widget = self.query_one("#results_text", Static)
             results_widget.update("Searching...")
             port = get_port(self.network)
             discovered_uids, tn = get_devices(port)
@@ -255,7 +256,6 @@ class ArtNetScreen(ModalScreen):
     @work(thread=True)
     async def run_network_discovery(self) -> str:
         try:
-            results_widget = self.query_one("#results", Static)
             results_widget.update(
                 f"Searching... timeout is {self.app.configuration.artnet_timeout} sec."
             )
@@ -307,7 +307,7 @@ class ArtNetScreen(ModalScreen):
         #   "software_version_label": "Sw.ver. 4.3",
         #   "dmx_start_address": 1,
         # }
-        results_widget = self.query_one("#results", Static)
+        results_widget = self.query_one("#results_text", Static)
         if message.devices:
             for device in message.devices:
                 uid = device.get("uid", None)
@@ -367,14 +367,14 @@ class ArtNetScreen(ModalScreen):
                 f"{item.short_name} {f'IP Address: {item.ip_address}' if item.ip_address else ''} {f'Universe: {item.universe}' if item.universe else ''} {f'DMX: {item.address}' if item.address else ''}"
                 for item in self.discovered_devices
             )
-            results_widget = self.query_one("#results", Static)
+            results_widget = self.query_one("#results_text", Static)
             results_widget.update(
                 f"[green]Found {len(self.discovered_devices)}:[/green]\n\n{results_text}"
             )
 
     def on_network_devices_discovered(self, message: NetworkDevicesDiscovered) -> None:
         devices = []
-        results_widget = self.query_one("#results", Static)
+        results_widget = self.query_one("#results_text", Static)
         if message.devices:
             for device in message.devices:
                 short_name = device.get("short_name", "No Name")
