@@ -255,6 +255,7 @@ class ArtNetScreen(ModalScreen):
 
     @work(thread=True)
     async def run_network_discovery(self) -> str:
+        results_widget = self.query_one("#results_text", Static)
         try:
             results_widget.update(
                 f"Searching... timeout is {self.app.configuration.artnet_timeout} sec."
