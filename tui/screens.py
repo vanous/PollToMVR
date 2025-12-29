@@ -29,6 +29,7 @@ from tui.messages import (
 )
 from tui.network import get_network_cards
 from tui.artnet import ArtNetDiscovery
+from tui.llrp import LlrpDiscovery
 from tui.rdm_search import get_device_info, get_devices, get_port, get_device_details
 import re
 import sys
@@ -260,11 +261,40 @@ class ArtNetScreen(ModalScreen):
             results_widget.update(
                 f"Searching... timeout is {self.app.configuration.artnet_timeout} sec."
             )
-            discovery = ArtNetDiscovery(bind_ip=self.network)
-            discovery.start()
             timeout = float(self.app.configuration.artnet_timeout)
-            result = discovery.discover_devices(timeout=timeout)
-            discovery.stop()  # not really needed, as the thread will close...
+            artnet = ArtNetDiscovery(bind_ip=self.network)
+            artnet.start()
+            artnet_result = artnet.discover_devices(timeout=timeout)
+            artnet.stop()
+
+            llrp_result = []
+            try:
+                llrp = LlrpDiscovery(bind_ip=self.network)
+                llrp.start()
+                llrp_result = llrp.discover_devices(timeout=timeout)
+                llrp.stop()
+            except Exception as llrp_error:
+                print(f"LLRP discovery failed: {llrp_error}")
+
+            device_map = {}
+            for device in artnet_result:
+                ip_key = device.get("source_ip") or device.get("reported_ip")
+                if ip_key:
+                    device_map[ip_key] = device
+            for device in llrp_result:
+                ip_key = device.get("source_ip")
+                if not ip_key:
+                    continue
+                if ip_key in device_map:
+                    if not device_map[ip_key].get("short_name"):
+                        device_map[ip_key]["short_name"] = device.get("short_name", "")
+                    if not device_map[ip_key].get("long_name"):
+                        device_map[ip_key]["long_name"] = device.get("long_name", "")
+                    device_map[ip_key].setdefault("uid", device.get("uid"))
+                else:
+                    device_map[ip_key] = device
+
+            result = list(device_map.values())
             self.post_message(NetworkDevicesDiscovered(devices=result))
             self.post_message(RdmDiscoveryMessage(label="Discover", disabled=False))
         except Exception as e:
