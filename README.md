@@ -3,7 +3,7 @@
 <img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/PollToMVR_icon.png" width="128px">
 
 [PollToMVR](https://github.com/vanous/PollToMVR) - a tool to perform device
-discovery via ArtNet or RDM E1.20 and to save found devices in an
+discovery via ArtNet, RDM E1.20, or RDMnet LLRP (ANSI E1.33) and to save found devices in an
 [MVR](https://gdtf-share.com/) (My Virtual Rig) scene file.
 
 <img src="https://raw.githubusercontent.com/vanous/PollToMVR/refs/heads/master/images/polltomvr_00.png">
@@ -14,6 +14,7 @@ discovery via ArtNet or RDM E1.20 and to save found devices in an
 - Provides Graphical [Terminal User Interface](https://textual.textualize.io/)
 - Uses ArtPoll based device network discovery, can parse DMX Address and Universe from device description if present
 - Uses RDM ANSI E1.20 via Robe RUNIT USB Interfaces for DMX line device discovery
+- Uses RDMnet LLRP (Low-Level Recovery Protocol, ANSI E1.33) for network discovery and device name lookup
 - Uses the [GDTF Share](https://gdtf-share.com) Fixture Library for fixture definitions in MVR
 
 ## FAQ
@@ -42,6 +43,11 @@ then be used in the MVR export.
 Yes, PollToMVR can use ANSI E1.20 for device discovery and to query the device
 for Device Info and Device Model Description. Supported USB interfaces are the
 Robe Lighting: `Universal Interface` and `RUNIT WTX` interfaces.
+
+### Can devices be discovered via LLRP?
+
+Yes, PollToMVR can also discover LLRP targets using RDMnet LLRP (ANSI E1.33) and retrieve
+DEVICE_LABEL over LLRP to show a device name when available.
 
 ## Instalation
 
