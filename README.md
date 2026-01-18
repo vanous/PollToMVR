@@ -179,7 +179,23 @@ All python code is to be formatted with ruff:
 
 ```
 uv tool run ruff format
-``
+```
+
+or
+
+```
+uv format
+```
+
+
+### Pre-commit-hooks
+
+There is a configuration for [pre-commit](https://pre-commit.com/). You can run
+this manually by running:
+
+```
+uv run pre-commit install
+```
 
 ## Packaging
 
