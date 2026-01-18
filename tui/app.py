@@ -43,12 +43,29 @@ class MVRDisplay(VerticalScroll):
         for layer, fixtures in items.items():
             self.mount(Static(f"Layer: [blue]{self.app.get_layer_name(layer)}[/blue]"))
 
-            for fixture in fixtures:
-                self.mount(
-                    Static(
-                        f"[green]{fixture.short_name}[/green] {f'IP Address: {fixture.ip_address}' if fixture.ip_address else ''} {f'Universe: {fixture.universe}' if fixture.universe else ''} {f'DMX: {fixture.address}' if fixture.address else ''}"
-                    )
-                )
+            for index, fixture in enumerate(fixtures):
+                self.mount(MVRFixtureRow(layer, index, fixture))
+
+
+class MVRFixtureRow(Horizontal):
+    def __init__(self, layer_id, index, fixture):
+        super().__init__()
+        self.layer_id = layer_id
+        self.index = index
+        self.fixture = fixture
+
+    def compose(self) -> ComposeResult:
+        yield Button("x", classes="remove_fixture", variant="error")
+        yield Static(
+            f"[green]{self.fixture.short_name}[/green] "
+            f"{f'IP Address: {self.fixture.ip_address}' if self.fixture.ip_address else ''} "
+            f"{f'Universe: {self.fixture.universe}' if self.fixture.universe else ''} "
+            f"{f'DMX: {self.fixture.address}' if self.fixture.address else ''}"
+        )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if "remove_fixture" in event.button.classes:
+            self.app.remove_mvr_fixture(self.layer_id, self.index)
 
 
 class GDTFMapping(VerticalScroll):
@@ -238,6 +255,7 @@ class PollToMVR(App):
 
                     self.mvr_display.update_items(self.mvr_fixtures)
                     self.gdtf_mapping.update_items()
+                    self._update_save_button_state()
 
             self.push_screen(ArtNetScreen(), layer_selector)
 
@@ -270,6 +288,32 @@ class PollToMVR(App):
             if layer_id == uuid:
                 return layer_name
         return None
+
+    def remove_mvr_fixture(self, layer_id, index) -> None:
+        fixtures = self.mvr_fixtures.get(layer_id, [])
+        if index < 0 or index >= len(fixtures):
+            return
+        fixtures.pop(index)
+        if not fixtures:
+            self.mvr_fixtures.pop(layer_id, None)
+        self._cleanup_gdtf_map()
+        self.mvr_display.update_items(self.mvr_fixtures)
+        self.gdtf_mapping.update_items()
+        self._update_save_button_state()
+
+    def _cleanup_gdtf_map(self) -> None:
+        active_fixtures = {
+            fixture.short_name
+            for layer in self.mvr_fixtures.values()
+            for fixture in layer
+        }
+        for name in list(self.gdtf_map.keys()):
+            if name not in active_fixtures:
+                self.gdtf_map.pop(name, None)
+
+    def _update_save_button_state(self) -> None:
+        save_button = self.query_one("#save_mvr", Button)
+        save_button.disabled = not any(self.mvr_fixtures.values())
 
     def _keyring_get(self, key):
         if not keyring:
