@@ -168,7 +168,11 @@ class PollToMVR(App):
     KEYRING_USERNAME_KEY = "gdtf_username"
     KEYRING_PASSWORD_KEY = "gdtf_password"
     configuration = SimpleNamespace(
-        artnet_timeout="1", show_debug=False, gdtf_username="", gdtf_password=""
+        artnet_timeout="1",
+        show_debug=False,
+        show_link_local_addresses=False,
+        gdtf_username="",
+        gdtf_password="",
     )
 
     mvr_fixtures = {}

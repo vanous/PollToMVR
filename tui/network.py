@@ -16,15 +16,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import ifaddr
+import sys
 
 
-def get_network_cards():
-    all_cards = [("All Network Interfaces: 0.0.0.0", "0.0.0.0")]
+def get_network_cards(show_link_local_addresses: bool = False):
+    all_cards = []
+    if not sys.platform.startswith("win"):
+        all_cards.append(("All Network Interfaces: 0.0.0.0", "0.0.0.0"))
     for adapter in ifaddr.get_adapters():
         for ip in adapter.ips:
             if isinstance(ip.ip, tuple):  # Skip IPv6
                 continue
-            if ip.ip.startswith("169.254."):  # Skip link-local
+            if (not show_link_local_addresses) and ip.ip.startswith(
+                "169.254."
+            ):  # Skip link-local
                 continue
 
             label = f"{adapter.nice_name}: {ip.ip}"

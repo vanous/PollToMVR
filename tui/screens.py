@@ -104,6 +104,10 @@ class ConfigScreen(ModalScreen[dict]):
                 yield Label("Show Debug Info:")
                 with Horizontal(id="details_checkbox_container"):
                     yield Switch(id="show_debug")
+            with Horizontal():
+                yield Label("Show local-link addresses:")
+                with Horizontal(id="link_local_checkbox_container"):
+                    yield Switch(id="show_link_local_addresses")
             yield Static("[bold]GDTF Share Credentials[/bold]", id="credentials")
             with Horizontal(classes="input_container"):
                 yield Label("Username:")
@@ -130,12 +134,18 @@ class ConfigScreen(ModalScreen[dict]):
         """Load existing data into the input fields."""
         self.query_one("#artnet_timeout").value = self.app.configuration.artnet_timeout
         self.query_one("#show_debug").value = self.app.configuration.show_debug
+        self.query_one(
+            "#show_link_local_addresses"
+        ).value = self.app.configuration.show_link_local_addresses
         self.query_one("#gdtf_username").value = self.app.configuration.gdtf_username
         self.query_one("#gdtf_password").value = self.app.configuration.gdtf_password
 
     def update_config(self):
         self.app.configuration.artnet_timeout = self.query_one("#artnet_timeout").value
         self.app.configuration.show_debug = self.query_one("#show_debug").value
+        self.app.configuration.show_link_local_addresses = self.query_one(
+            "#show_link_local_addresses"
+        ).value
         self.app.configuration.gdtf_username = self.query_one("#gdtf_username").value
         self.app.configuration.gdtf_password = self.query_one("#gdtf_password").value
 
@@ -184,10 +194,9 @@ class ArtNetScreen(ModalScreen):
 
     def on_mount(self):
         select_widget = self.query_one("#networks_select", Select)
-        self.networks = get_network_cards()
-        if sys.platform.startswith("win"):
-            self.networks.pop(0)  # the 0.0.0.0 does not really work on Win
-
+        self.networks = get_network_cards(
+            show_link_local_addresses=self.app.configuration.show_link_local_addresses
+        )
         select_widget.set_options(self.networks)
         if any(ip == "0.0.0.0" for name, ip in self.networks):
             select_widget.value = "0.0.0.0"  # for Win
