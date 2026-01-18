@@ -29,6 +29,13 @@ from textual_fspicker import FileSave, Filters
 from tui.gdtf_share.gdtf import GDTFScreen
 from pathlib import Path
 
+try:
+    import keyring
+    from keyring.errors import KeyringError
+except ImportError:  # pragma: no cover - optional dependency at runtime
+    keyring = None
+    KeyringError = Exception
+
 
 class MVRDisplay(VerticalScroll):
     def update_items(self, items):
@@ -118,6 +125,8 @@ class GDTFMappedFixture(Horizontal):
 class PollToMVR(App):
     """A Textual app to manage Uptime Kuma MVR."""
 
+    APP_NAME = "PollToMVR"
+    TITLE = APP_NAME
     CSS_PATH = [
         "app.css",
         "quit_screen.css",
@@ -138,6 +147,9 @@ class PollToMVR(App):
     ]
 
     CONFIG_FILE = "config.json"
+    KEYRING_SERVICE = APP_NAME
+    KEYRING_USERNAME_KEY = "gdtf_username"
+    KEYRING_PASSWORD_KEY = "gdtf_password"
     configuration = SimpleNamespace(
         artnet_timeout="1", show_debug=False, gdtf_username="", gdtf_password=""
     )
@@ -172,15 +184,22 @@ class PollToMVR(App):
         """Load the configuration from the JSON file when the app starts."""
         path = Path("gdtf_files")
         path.mkdir(parents=True, exist_ok=True)
+        config_data = {}
         if os.path.exists(self.CONFIG_FILE):
             with open(self.CONFIG_FILE, "r") as f:
                 try:
-                    vars(self.configuration).update(json.load(f))
+                    config_data = json.load(f)
+                    vars(self.configuration).update(config_data)
                     self.notify("Configuration loaded...", timeout=1)
 
                 except json.JSONDecodeError:
                     # Handle empty or invalid JSON file
                     pass
+        migrated = self._load_credentials(config_data)
+        if migrated:
+            with open(self.CONFIG_FILE, "w") as f:
+                json.dump(config_data, f, indent=4)
+            self.notify("Credentials moved to system keyring.", timeout=2)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Called when a button is pressed."""
@@ -236,8 +255,10 @@ class PollToMVR(App):
 
     def action_save_config(self) -> None:
         """Save the configuration to the JSON file."""
+        config_data = vars(self.app.configuration).copy()
+        self._persist_credentials(config_data)
         with open(self.CONFIG_FILE, "w") as f:
-            json.dump(vars(self.app.configuration), f, indent=4)
+            json.dump(config_data, f, indent=4)
 
     def action_quit(self) -> None:
         """Save the configuration to the JSON file when the app closes."""
@@ -248,6 +269,69 @@ class PollToMVR(App):
         for layer_name, layer_id in self.mvr_layers:
             if layer_id == uuid:
                 return layer_name
+        return None
+
+    def _keyring_get(self, key):
+        if not keyring:
+            return None
+        try:
+            return keyring.get_password(self.KEYRING_SERVICE, key)
+        except KeyringError:
+            return None
+
+    def _keyring_set(self, key, value):
+        if not keyring:
+            return False
+        try:
+            if value:
+                keyring.set_password(self.KEYRING_SERVICE, key, value)
+            else:
+                try:
+                    keyring.delete_password(self.KEYRING_SERVICE, key)
+                except KeyringError:
+                    pass
+            return True
+        except KeyringError:
+            return False
+
+    def _load_credentials(self, config_data):
+        migrated = False
+        username = self._keyring_get(self.KEYRING_USERNAME_KEY)
+        password = self._keyring_get(self.KEYRING_PASSWORD_KEY)
+        config_username = config_data.get("gdtf_username", "")
+        config_password = config_data.get("gdtf_password", "")
+        if (config_username or config_password) and (
+            username is None or password is None
+        ):
+            stored_user = self._keyring_set(self.KEYRING_USERNAME_KEY, config_username)
+            stored_pass = self._keyring_set(self.KEYRING_PASSWORD_KEY, config_password)
+            if stored_user and stored_pass:
+                config_data.pop("gdtf_username", None)
+                config_data.pop("gdtf_password", None)
+                migrated = True
+                username = self._keyring_get(self.KEYRING_USERNAME_KEY)
+                password = self._keyring_get(self.KEYRING_PASSWORD_KEY)
+        if username is None:
+            username = config_username
+        if password is None:
+            password = config_password
+        self.configuration.gdtf_username = username or ""
+        self.configuration.gdtf_password = password or ""
+        return migrated
+
+    def _persist_credentials(self, config_data):
+        stored_user = self._keyring_set(
+            self.KEYRING_USERNAME_KEY, self.configuration.gdtf_username
+        )
+        stored_pass = self._keyring_set(
+            self.KEYRING_PASSWORD_KEY, self.configuration.gdtf_password
+        )
+        if stored_user and stored_pass:
+            config_data.pop("gdtf_username", None)
+            config_data.pop("gdtf_password", None)
+        else:
+            config_data["gdtf_username"] = self.configuration.gdtf_username
+            config_data["gdtf_password"] = self.configuration.gdtf_password
 
     @on(Button.Pressed)
     @work
